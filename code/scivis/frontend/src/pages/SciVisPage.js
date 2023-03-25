@@ -9,19 +9,35 @@ export const SciVisPage = () => {
 
   const [shouldLoadMap, setShouldLoadMap] = useState(true);
   const [selectedColourMap, setSelectedColourMap] = useState("haxby");
+  const [selectedView, setSelectedView] = useState("2d");
+
+  const [regionMinX, setRegionMinX] = useState(0);
+  const [regionMaxX, setRegionMaxX] = useState(40);
+  const [regionMinY, setRegionMinY] = useState(-40);
+  const [regionMaxY, setRegionMaxY] = useState(0);
 
   const loadMap = async () => {
     let result;
 
     setLoading(true);
 
-    try {
-      result = await axios.post("http://127.0.0.1:5000/generate/2d", {
+    let postOptions = {};
+    
+    if(selectedView === "2d") {
+      postOptions = {
         projection: "Q",
-        size: "15c",
-        region: [-180, 180, -90, 90],
-        colour_map: selectedColourMap
-      })
+        size: "15c"
+      }
+    }
+
+    postOptions = {
+      ...postOptions, 
+      region: [regionMinX, regionMaxX, regionMinY, regionMaxY],
+      colour_map: selectedColourMap
+    }
+
+    try {
+      result = await axios.post(`http://127.0.0.1:5000/generate/${selectedView}`, postOptions)
     } catch (error) {
       alert("Unable to load initial map. Is the server running?")
       return;
@@ -60,12 +76,67 @@ export const SciVisPage = () => {
       </div>
       <div className="width-25 height-100 flex-col">
         <div className="flex-col width-100">
+        <div className="flex-row">
+            <span>View:</span>
+            <select onChange={(e) => setSelectedView(e.target.value)} value={selectedView} disabled={loading}>
+              <option value="2d">2D</option>
+              <option value="3d">3D</option>
+            </select>
+          </div>
           <div className="flex-row">
             <span>Colour Map:</span>
             <select onChange={(e) => setSelectedColourMap(e.target.value)} value={selectedColourMap} disabled={loading}>
               <option value="haxby">Rainbow</option>
               <option value="geo">Standard Earth Geology</option>
+              <option value="zebra">Zebra</option>
             </select>
+          </div>
+          <div className="flex-row">
+            { // xmin/xmax/ymin/ymax 
+            } 
+            <span>Region:</span>
+            <div className="flex-col">
+              <div className="flex-row">
+                <span>Min X:</span>
+                <input
+                  type="number"
+                  value={regionMinX}
+                  onChange={(e) => setRegionMinX(e.target.value)}
+                  min={-180}
+                  max={180}
+                />
+              </div>
+              <div className="flex-row">
+                <span>Max X:</span>
+                <input
+                  type="number"
+                  value={regionMaxX}
+                  onChange={(e) => setRegionMaxX(e.target.value)}
+                  min={-180}
+                  max={180}
+                />
+              </div>
+              <div className="flex-row">
+                <span>Min Y:</span>
+                <input
+                  type="number"
+                  value={regionMinY}
+                  onChange={(e) => setRegionMinY(e.target.value)}
+                  min={-90}
+                  max={90}
+                />
+              </div>
+              <div className="flex-row">
+                <span>Max Y:</span>
+                <input
+                  type="number"
+                  value={regionMaxY}
+                  onChange={(e) => setRegionMaxY(e.target.value)}
+                  min={-90}
+                  max={90}
+                />
+              </div>
+            </div>
           </div>
           <button disabled={loading} onClick={(e) => setShouldLoadMap(true)}>Load Map</button>
         </div>
