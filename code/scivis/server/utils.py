@@ -33,39 +33,12 @@ class TwoDimensionalImageOptions:
 
     @staticmethod
     def load_options(received: Dict[str, Any]):
-        region_min_x = float(received["region_min_x"])
-        region_max_x = float(received["region_max_x"])
-
-        if region_min_x >= region_max_x:
-            pass
-
-        if region_min_x < -180:
-            pass
-
-        if region_max_x > 180:
-            pass
-        
-        region_min_y = float(received["region_min_y"])
-        region_max_y = float(received["region_max_y"])
-
-        if region_min_y >= region_max_y:
-            pass
-
-        if region_min_y <= -90:
-            pass
-
-        if region_max_y >= 90:
-            pass
-
-        if received["colour_map_name"] not in VALID_COLOUR_MAPS:
-            pass
-
         return TwoDimensionalImageOptions(
-            region_min_x=region_min_x,
-            region_max_x=region_max_x,
-            region_min_y=region_min_y,
-            region_max_y=region_max_y,
-            colour_map_name=received["colour_map_name"]
+            region_min_x=received["region"]["min_x"],
+            region_max_x=received["region"]["max_x"],
+            region_min_y=received["region"]["min_y"],
+            region_max_y=received["region"]["max_y"],
+            colour_map_name=received["colour_map"]
         )
 
 

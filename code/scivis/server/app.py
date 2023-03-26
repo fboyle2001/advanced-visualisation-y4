@@ -37,22 +37,36 @@ def generate_2d_map():
     file_name = f"{options.calculate_hash()}.png"
     save_loc = f"./generated/{file_name}"
 
-    if os.path.isfile(save_loc):
-        return {
-            "output_location": file_name,
-            "generation_time": "pregenerated"
-        }
+    # if os.path.isfile(save_loc):
+    #     return {
+    #         "output_location": file_name,
+    #         "generation_time": "pregenerated"
+    #     }
 
     start_time = time.time()
 
     fig = pygmt.Figure()
+
+    print(
+        (90 - options.region_max_y) * pixels_per_degree,
+        (90 - options.region_min_y) * pixels_per_degree,
+        (options.region_min_x + 180) * pixels_per_degree, 
+        (options.region_max_x + 180) * pixels_per_degree
+    )
+    
+    selected_raw = arr[(90 - options.region_max_y) * pixels_per_degree : (90 - options.region_min_y) * pixels_per_degree, 
+                       (options.region_min_x + 180) * pixels_per_degree : (options.region_max_x + 180) * pixels_per_degree]
+    
+    print(arr.shape, selected_raw.shape)
+
     fig.grdimage(
         grid=arr,
         cmap=options.colour_map_name,
-        projection=f"Q15c", #"J0/30c", #"X30c/15c", #"Y0/0/30c", #"Cyl_stere/0/0/30c", #"M30c",
-        # frame="a30f15",
+        projection=f"Q30c",
         region=options.region, # type: ignore
     )
+    
+    # fig.colorbar(frame=["x+lelevation", "y+lm"])
 
     fig.savefig(save_loc)
     
@@ -60,7 +74,8 @@ def generate_2d_map():
 
     return {
         "output_location": file_name,
-        "generation_time": delta
+        "generation_time": delta,
+        "selected_raw": selected_raw.to_numpy().tolist()
     }
 
 @app.get("/generated/<file_loc>")
