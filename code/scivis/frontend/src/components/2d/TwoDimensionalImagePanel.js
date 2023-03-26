@@ -66,17 +66,21 @@ export const TwoDimensionalImagePanel = (props) => {
     const realClickedX = clientX - startX;
     const realClickedY = clientY - startY;
 
-    const pixelY = Math.ceil(rawDisplacements.length * realClickedY / boundingHeight) - 1;
+    const pixelY = clamp(Math.ceil(rawDisplacements.length * realClickedY / boundingHeight) - 1, 0, rawDisplacements.length - 1);
     const selectedArray = rawDisplacements[pixelY];
-    const pixelX = Math.ceil(selectedArray.length * realClickedX / boundingWidth) - 1;
+    const pixelX = clamp(Math.ceil(selectedArray.length * realClickedX / boundingWidth) - 1, 0, selectedArray.length - 1);
 
     const displacement = selectedArray[pixelX];
-    console.log({pixelX, pixelY, displacement})
     setCurrentDisplacement(displacement);
     setCurrentCoordinates([
       clamp(regionMinX + ((regionMaxX - regionMinX) * realClickedX) / boundingWidth, regionMinX, regionMaxX),
       clamp(regionMinY + ((regionMaxY - regionMinY) * (boundingHeight - realClickedY)) / boundingHeight, regionMinY, regionMaxY)
     ]);
+  }
+
+  const onMouseOut = (e) => {
+    setCurrentDisplacement(null);
+    setCurrentCoordinates([null, null]);
   }
 
   useEffect(() => {
@@ -110,6 +114,7 @@ export const TwoDimensionalImagePanel = (props) => {
     const rightR = calculateRegionXCoord(boundingWidth - right);
 
     setOverlayCoords([top, left, bottom, right]);
+
     setNextRegionMinX(leftR);
     setNextRegionMaxX(rightR);
     setNextRegionMinY(bottomR);
@@ -134,43 +139,43 @@ export const TwoDimensionalImagePanel = (props) => {
 
   return (
     <>
-    <div
-      style={{
-        "border": "2px solid black"
-      }}
-    >
       <div
         style={{
-          "position": "relative",
-          "display": "inline-block"
+          "border": "2px solid black"
         }}
       >
-        <img 
-          src={`http://localhost:5000/generated/${imageLocation}`}
-          className="map-display"
-          alt="test"
-        />
-        <div className="map-overlay" 
-          onClick={onRegionSelectClick}
-          onMouseMove={onHover}
-          ref={overlayRef}
-        >
+        <div className="flex-col">
+          <div className="flex-row flex-between">
+            <span>Displaying Region: {regionMinX} {"<="} x {"<="} {regionMaxX}, {regionMinY} {"<="} y {"<="} {regionMaxY}</span>
+            <span>Displacement Range: {minDisp} {"<="} z {"<="} {maxDisp}</span>
+          </div>
+          <span>Current Values: {currentCoordinates[0] === null ? "Outside Region" : `(${currentCoordinates[0]}, ${currentCoordinates[1]}, ${currentDisplacement})`}</span>
         </div>
-        { renderSelectedRegionOverlay() }
+        <div
+          style={{
+            "position": "relative",
+            "display": "inline-block"
+          }}
+        >
+          <img 
+            src={`http://localhost:5000/generated/${imageLocation}`}
+            className="map-display"
+            alt="test"
+          />
+          <div className="map-overlay" 
+            onClick={onRegionSelectClick}
+            onMouseLeave={onMouseOut}
+            onMouseMove={onHover}
+            ref={overlayRef}
+          />
+          { renderSelectedRegionOverlay() }
+        </div>
+        <img
+          src={`http://localhost:5000/generated/${legendLocation}`}
+          className="map-display"
+          alt="legend"
+        /> 
       </div>
-      <img
-        src={`http://localhost:5000/generated/${legendLocation}`}
-        className="map-display"
-        alt="legend"
-      /> 
-      
-
-    </div>
-      <p>{currentCorner ? null : "Select another point"}</p>
-      <p>Selected Region: {nextRegionMinX} {"<="} x {"<="} {nextRegionMaxX}, {nextRegionMinY} {"<="} y {"<="} {nextRegionMaxY}</p>
-      <p>Current Displacement: {currentDisplacement ? currentDisplacement : null}</p>
-      <p>Coords: {currentCoordinates[0]}, {currentCoordinates[1]}</p>
-      <p>{minDisp} disp {"<"}= {maxDisp}</p>
     </>
   )
 }

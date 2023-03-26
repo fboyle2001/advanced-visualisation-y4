@@ -5,6 +5,8 @@ import json
 
 import abc
 
+ABS_MAX_X = 180
+ABS_MAX_Y = 90
 VALID_COLOUR_MAPS = ["haxby", "geo"]
 
 @dataclass
@@ -31,6 +33,11 @@ class TwoDimensionalImageOptions:
     @property
     def colour_map(self):
         pass
+
+    def is_differentiable(self):
+        x_valid = abs(self.region_min_x) < ABS_MAX_X and abs(self.region_max_x) < ABS_MAX_X
+        y_valid = abs(self.region_min_y) < ABS_MAX_Y and abs(self.region_max_y) < ABS_MAX_Y
+        return x_valid and y_valid
 
     def calculate_hash(self):
         return sha256(json.dumps(self.__dict__).encode()).hexdigest()

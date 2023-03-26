@@ -59,3 +59,7 @@ Map Display
   display: flex;
   flex-direction: column;
 }
+
+.flex-between {
+  justify-content: space-between;
+}
