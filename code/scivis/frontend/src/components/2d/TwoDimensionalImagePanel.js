@@ -2,7 +2,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import { clamp } from '../utils';
 
 export const TwoDimensionalImagePanel = (props) => {
-  const {regionMinX, regionMaxX, regionMinY, regionMaxY, imageLocation, updateSelectedRegion, rawDisplacements} = props;
+  const {
+    regionMinX, regionMaxX, regionMinY, regionMaxY, 
+    imageLocation, legendLocation,
+    rawDisplacements,
+    updateSelectedRegion
+  } = props;
 
   console.log({rawDisplacements})
 
@@ -23,10 +28,6 @@ export const TwoDimensionalImagePanel = (props) => {
   const [cornerOne, setCornerOne] = useState([null, null]);
   const [cornerTwo, setCornerTwo] = useState([null, null]);
   const [currentCorner, setCurrentCorner] = useState(true); 
-
-  
-
-  
 
   useEffect(() => {
     let currentMax = -1000;
@@ -133,6 +134,11 @@ export const TwoDimensionalImagePanel = (props) => {
 
   return (
     <>
+    <div
+      style={{
+        "border": "2px solid black"
+      }}
+    >
       <div
         style={{
           "position": "relative",
@@ -152,10 +158,18 @@ export const TwoDimensionalImagePanel = (props) => {
         </div>
         { renderSelectedRegionOverlay() }
       </div>
+      <img
+        src={`http://localhost:5000/generated/${legendLocation}`}
+        className="map-display"
+        alt="legend"
+      /> 
+      
+
+    </div>
       <p>{currentCorner ? null : "Select another point"}</p>
       <p>Selected Region: {nextRegionMinX} {"<="} x {"<="} {nextRegionMaxX}, {nextRegionMinY} {"<="} y {"<="} {nextRegionMaxY}</p>
       <p>Current Displacement: {currentDisplacement ? currentDisplacement : null}</p>
-      <p>Coords: {currentCoordinates}</p>
+      <p>Coords: {currentCoordinates[0]}, {currentCoordinates[1]}</p>
       <p>{minDisp} disp {"<"}= {maxDisp}</p>
     </>
   )

@@ -14,6 +14,10 @@ class TwoDimensionalImageOptions:
     region_min_y: float
     region_max_y: float
     colour_map_name: str # may need options?
+    contours_enabled: bool
+    contour_line_interval: float
+    contour_annotation_interval: float
+    gradient_shading_enabled: bool
 
     @property
     def region(self) -> Tuple[float, float, float, float]:
@@ -38,7 +42,11 @@ class TwoDimensionalImageOptions:
             region_max_x=received["region"]["max_x"],
             region_min_y=received["region"]["min_y"],
             region_max_y=received["region"]["max_y"],
-            colour_map_name=received["colour_map"]
+            colour_map_name=received["colour_map"],
+            contours_enabled=received["contours"]["enabled"],
+            contour_line_interval=float(received["contours"]["line_interval"]),
+            contour_annotation_interval=float(received["contours"]["annotation_interval"]),
+            gradient_shading_enabled=received["gradient_shading_enabled"]
         )
 
 
