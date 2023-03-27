@@ -111,23 +111,8 @@ def generate_2d_map():
 
         npg = np.array(np.gradient(selected_raw))
 
-        # print(gradient)
-
-        # print(npg)
-
-        print(gradient.shape, npg.shape, selected_raw.shape)
-
-        print(npg[1, :, :].shape, npg[0, :, :].shape)
-
         npg[0, :, :] = npg[0, ::-1, :]
         npg[1, :, :] = npg[1, ::-1, :]
-
-        x_range = np.sort(np.random.choice(np.arange(npg[0, :, :].shape[0]), size=7, replace=False))
-        y_range = np.sort(np.random.choice(np.arange(npg[0, :, :].shape[1]), size=7, replace=False))
-        idxes = np.ix_(x_range, y_range)
-
-        print(x_range)
-        print(y_range)
 
         # sample_mask = np.random.choice([True, False], npg[0, :, :].shape, p=[0.5, 0.5])
         
@@ -136,19 +121,10 @@ def generate_2d_map():
         n = -2
         color_array = np.sqrt(((dx-n)/2)**2 + ((dy-n)/2)**2)
 
-        U = npg[1, :, :][idxes]
-        V = npg[0, :, :][idxes]
-
-        print("old:", np.arange(0, npg.shape[2]).shape, np.arange(0, npg.shape[1]).shape)
-        print("new:", x_range.shape, y_range.shape)
-        print("u,v:", U.shape, V.shape)
-
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        #ax.quiver(np.arange(0, npg.shape[2]), np.arange(0, npg.shape[1]), dx, dy, color_array, angles="xy")
-        
-        # ax.quiver(np.arange(0, npg.shape[2])[::3], np.arange(0, npg.shape[1])[::3], dx[::3, ::3], dy[::3, ::3], angles="xy")
-        ax.quiver(np.arange(0, npg.shape[2])[x_range], np.arange(0, npg.shape[1])[y_range], U, V, angles="xy")
+        ax.quiver(np.arange(0, npg.shape[2]), np.arange(0, npg.shape[1]), dx, dy, color_array, angles="xy")
+
         ax.set_aspect("equal")
         #ax.axis("off")
         #ax.margins(0)
