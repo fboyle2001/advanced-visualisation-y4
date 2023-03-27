@@ -11,6 +11,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
+import math
 
 regen = True
 pygmt.config(PROJ_ELLIPSOID="Moon")
@@ -116,18 +117,51 @@ def generate_2d_map():
 
         # sample_mask = np.random.choice([True, False], npg[0, :, :].shape, p=[0.5, 0.5])
         
-        dx = npg[1, :, :]
-        dy = npg[0, :, :]
+        sample_ratio = 0.4
+        sample_count = math.floor(sample_ratio * npg.shape[1] * npg.shape[2])
+
+        bottom_left = np.array([0, 0])
+        top_right = np.array([npg.shape[1] - 1, npg.shape[2] - 1])
+
+        selected_indices = np.random.randint((0, 0), (npg.shape[1], npg.shape[2]), size=(sample_count, 2)) # np.array([[1, 2], [1, 4], [4, 5], [9, 15], [23, 24]])
+        appended_indices = []
+
+        if bottom_left not in selected_indices:
+            appended_indices.append(bottom_left)
+
+        if top_right not in selected_indices:
+            appended_indices.append(top_right)
+        
+        np.append(selected_indices, [bottom_left, top_right])
+
+        # dx = npg[1, :, :][Y_INDICES, X_INDICES]
+        dx = npg[1, :, :][selected_indices[:, 0], selected_indices[:, 1]]
+        dy = npg[0, :, :][selected_indices[:, 0], selected_indices[:, 1]]
+
         n = -2
         color_array = np.sqrt(((dx-n)/2)**2 + ((dy-n)/2)**2)
 
+        x_range = np.arange(0, npg.shape[2])[selected_indices[:, 1]]
+        y_range = np.arange(0, npg.shape[1])[selected_indices[:, 0]]
+
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        ax.quiver(np.arange(0, npg.shape[2]), np.arange(0, npg.shape[1]), dx, dy, color_array, angles="xy")
+        print(x_range.shape, y_range.shape)
+        print(dx.shape, dy.shape)
+        print(color_array.shape)
+
+        """
+        Seems that 
+        len(x_range) === dx.shape[1] 
+        len(y_range) === dx.shape[0]
+        dx.shape === dy.shape === color_array.shape
+        """
+
+        ax.quiver(x_range, y_range, dx, dy, color_array, angles="xy")
 
         ax.set_aspect("equal")
-        #ax.axis("off")
-        #ax.margins(0)
+        ax.axis("off")
+        ax.margins(0)
         plt.savefig("./test.png", bbox_inches="tight", pad_inches=0)
         plt.close()
 
