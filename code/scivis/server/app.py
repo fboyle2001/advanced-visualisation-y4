@@ -21,10 +21,41 @@ xds, grid = load_displacement_map(pixels_per_degree)
 app = Flask(__name__)
 cors = CORS(app, resources={r"/*": {"origins": "*"}})
 
+@app.post("/resolution")
+def change_resolution():
+    options: Dict[str, Any] = request.json # type: ignore
+    resolution = options.get("resolution", "normal")
+
+    resolution_lookup = {
+        "normal": 4,
+        "high": 16
+    }
+
+    if resolution not in resolution_lookup.keys():
+        return {}
+    
+    new_ppd = resolution_lookup[resolution]
+    
+    global xds, grid, pixels_per_degree
+    
+    if new_ppd == pixels_per_degree:
+        return {}
+    
+    pixels_per_degree = new_ppd
+    xds, grid = load_displacement_map(pixels_per_degree)
+
+    return {}
+
 @app.post("/generate/2d")
 def generate_2d_map():
     options: Dict[str, Any] = request.json # type: ignore
+
+    force_regen = options.get("force_regen", False)
+    options.pop("force_regen", None)
+    options["__resolution"] = pixels_per_degree
+
     options_hash = sha256(json.dumps(options).encode()).hexdigest()
+    print(options_hash)
 
     region = RegionOptions.load_options(options)
 
@@ -56,7 +87,7 @@ def generate_2d_map():
     start_time = time.time()
 
     # Forcefully cause a regeneration of the images
-    if options.get("force_regen", False):
+    if force_regen:
         if os.path.isfile(complete_save_loc):
             os.remove(complete_save_loc)
         
@@ -68,6 +99,7 @@ def generate_2d_map():
 
     # Generate if the file doesn't already exist
     if not os.path.isfile(complete_save_loc):
+        print("recreate")
         fig = pygmt.Figure()
 
         shading = None
@@ -132,9 +164,69 @@ def generate_2d_map():
         "selected_raw": selected_grid.tolist()
     }
 
+@app.post("/generate/3d")
+def generate_3d():
+    options: Dict[str, Any] = request.json # type: ignore
+
+    force_regen = options.get("force_regen", False)
+    options.pop("force_regen", None)
+    options["__resolution"] = pixels_per_degree
+
+    options_hash = sha256(json.dumps(options).encode()).hexdigest()
+
+    region = RegionOptions.load_options(options)
+
+    if not region.is_valid():
+        return {
+            "error": "Invalid region"
+        }
+    
+    # To remove the need to constantly regenerate, we cache using hashes to identify
+    perspective_save_loc = f"./generated/{options_hash}_perspective.png"
+
+    # Forcefully cause a regeneration of the images
+    if force_regen:
+        if os.path.isfile(perspective_save_loc):
+            os.remove(perspective_save_loc)
+
+    if not os.path.isfile(perspective_save_loc):
+        fig = pygmt.Figure()
+
+        grdview_params = {
+            "grid": grid,
+            "region": region.as_tuple(), # type: ignore
+            "frame": ["a5f1g5", "za5f1g5"],
+            "projection": "Q30c",
+            "zscale": "0.5c",
+            "surftype": "s",
+            "cmap": options.get("colour_map", "haxby"),
+            "perspective": [options.get("azimuth", 135), options.get("elevation", 30)]
+        }
+
+        contour_options = options.get("contours", dict())
+
+        if contour_options.get("enabled"):
+            contour_line_interval = float(contour_options.get("line_interval", 0))
+
+            if contour_line_interval > 0:
+                grdview_params["contourpen"] = "1p,blue"
+
+        fig.grdview(**grdview_params)
+        fig.colorbar(frame=["x+ldisplacement", "y+lkm"])
+        fig.savefig(perspective_save_loc)
+
+    return {
+        "output_location": f"{options_hash}_perspective.png"
+    }
+
 @app.post("/generate/gradient_glyphs")
 def generate_glyphs():
     options: Dict[str, Any] = request.json # type: ignore
+
+    force_regen = options.get("force_regen", False)
+    options.pop("force_regen", None)
+    options["__resolution"] = pixels_per_degree
+
     options_hash = sha256(json.dumps(options).encode()).hexdigest()
 
     region = RegionOptions.load_options(options)
@@ -152,7 +244,7 @@ def generate_glyphs():
                        (region.min_x + 180) * pixels_per_degree : (region.max_x + 180) * pixels_per_degree].to_numpy()
 
     # Forcefully cause a regeneration of the images
-    if options.get("force_regen", False):
+    if force_regen:
         if os.path.isfile(glyph_save_loc):
             os.remove(glyph_save_loc)
 
@@ -163,12 +255,17 @@ def generate_glyphs():
         graphs.generate_gradient_glyphs(npg, sample_ratio, glyph_save_loc)
 
     return {
-        "file_loc": glyph_save_loc
+        "file_loc": f"{options_hash}_glyphs.png"
     }
 
 @app.post("/generate/gradient_heatmap")
 def generate_heatmap():
     options: Dict[str, Any] = request.json # type: ignore
+
+    force_regen = options.get("force_regen", False)
+    options.pop("force_regen", None)
+    options["__resolution"] = pixels_per_degree
+
     options_hash = sha256(json.dumps(options).encode()).hexdigest()
 
     region = RegionOptions.load_options(options)
@@ -186,17 +283,17 @@ def generate_heatmap():
                        (region.min_x + 180) * pixels_per_degree : (region.max_x + 180) * pixels_per_degree].to_numpy()
 
     # Forcefully cause a regeneration of the images
-    if options.get("force_regen", False):
+    if force_regen:
         if os.path.isfile(heatmap_save_loc):
             os.remove(heatmap_save_loc)
 
     if not os.path.isfile(heatmap_save_loc):
         # Calculate gradients and generate the magnitude heatmap
         npg = np.array(np.gradient(selected_grid))
-        graphs.generate_gradient_magnitude_heatmap(npg, heatmap_save_loc)
+        graphs.generate_gradient_magnitude_heatmap(npg, options.get("colour_map", "rocket"), heatmap_save_loc)
 
     return {
-        "file_loc": heatmap_save_loc
+        "file_loc": f"{options_hash}_heatmap.png"
     }
 
 @app.get("/generated/<file_loc>")

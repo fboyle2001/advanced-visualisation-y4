@@ -6,6 +6,23 @@ html, body {
   padding: 0;
 }
 
+h1, h2, h3, h4 {
+  margin: 0;
+  padding: 0;
+}
+
+h1 {
+  margin-bottom: 0.3rem;
+}
+
+h2 {
+  margin-bottom: 0.2rem;
+}
+
+h3, h4 {
+  margin-bottom: 0.2rem;
+}
+
 /*
 Map Display
 -----------
@@ -46,6 +63,11 @@ Map Display
   border: 1px solid black;
 }
 
+.width-50 {
+  width: 50%;
+  border: 1px solid black;
+}
+
 .height-100 {
   height: 100vh;
 }
@@ -55,11 +77,47 @@ Map Display
   flex-direction: row;
 }
 
+.input-container {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0.2rem;
+}
+
+.input-row {
+  display: flex;
+  flex-direction: row;
+}
+
+.input-help {
+  font-size: small;
+  font-style: italic;
+}
+
 .flex-col {
   display: flex;
   flex-direction: column;
 }
 
+.flex-center {
+  margin: auto;
+}
+
+.flex-center-vertical {
+  margin-top: auto;
+  margin-bottom: auto;
+}
+
 .flex-between {
   justify-content: space-between;
+}
+
+.cover {
+  object-fit: cover;
+}
+
+.contained {
+  border: 1px solid black; 
+  padding: 0.3rem;
+  margin-top: 0.3rem;
+  margin-bottom: 0.3rem;
 }

@@ -8,12 +8,12 @@ VALID_COLOUR_MAPS = ["haxby", "geo"]
 
 @dataclass
 class RegionOptions:
-    min_x: float
-    max_x: float
-    min_y: float
-    max_y: float
+    min_x: int
+    max_x: int
+    min_y: int
+    max_y: int
 
-    def as_tuple(self) -> Tuple[float, float, float, float]:
+    def as_tuple(self) -> Tuple[int, int, int, int]:
         return (
             self.min_x,
             self.max_x,
@@ -32,10 +32,10 @@ class RegionOptions:
     @staticmethod
     def load_options(received: Dict[str, Any]) -> "RegionOptions":
         return RegionOptions(
-            min_x=received["region"]["min_x"],
-            max_x=received["region"]["max_x"],
-            min_y=received["region"]["min_y"],
-            max_y=received["region"]["max_y"]
+            min_x=int(received["region"]["min_x"]),
+            max_x=int(received["region"]["max_x"]),
+            min_y=int(received["region"]["min_y"]),
+            max_y=int(received["region"]["max_y"])
         )
 
 def load_displacement_map(pixels_per_degree, apply_transform=True):

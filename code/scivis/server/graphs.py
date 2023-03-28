@@ -19,6 +19,8 @@ def generate_gradient_glyphs(region_np_gradients, sample_ratio, file_location):
     if sample_ratio == "auto":
         # TODO: Find a better way for this
         sample_ratio = 0.4
+    else:
+        sample_ratio = float(sample_ratio)
     
     sample_count = math.floor(sample_ratio * npg.shape[1] * npg.shape[2])
 
@@ -45,7 +47,7 @@ def generate_gradient_glyphs(region_np_gradients, sample_ratio, file_location):
     dy = npg[0, :, :][selected_indices[:, 0], selected_indices[:, 1]]
 
     # Define the colour of the glyphs
-    n = -2
+    n = 0
     color_array = np.sqrt(((dx-n)/2)**2 + ((dy-n)/2)**2)
 
     # Define the coordinates for which we will be plotting
@@ -68,6 +70,7 @@ def generate_gradient_glyphs(region_np_gradients, sample_ratio, file_location):
     dx.shape === dy.shape === color_array.shape
     """
 
+    # cmap=sns.color_palette("mako", as_cmap=True)
     ax.quiver(x_range, y_range, dx, dy, color_array, angles="xy")
 
     ax.set_aspect("equal")
@@ -75,7 +78,7 @@ def generate_gradient_glyphs(region_np_gradients, sample_ratio, file_location):
     ax.margins(0)
     fig.savefig(file_location, bbox_inches="tight", pad_inches=0)
 
-def generate_gradient_magnitude_heatmap(region_np_gradients, file_location):
+def generate_gradient_magnitude_heatmap(region_np_gradients, cmap_name, file_location):
     npg = region_np_gradients.copy()
 
     # Flip the axes order so that we have them the correct way up for displaying
@@ -91,7 +94,8 @@ def generate_gradient_magnitude_heatmap(region_np_gradients, file_location):
 
     fig = Figure()
     ax = fig.add_subplot(111)
-    sns.heatmap(npg, ax=ax)
+    cmap = sns.color_palette(cmap_name, as_cmap=True)
+    sns.heatmap(npg, ax=ax, cmap=cmap)
     ax.invert_yaxis()
     ax.set_aspect("equal")
     fig.savefig(file_location, bbox_inches="tight")
