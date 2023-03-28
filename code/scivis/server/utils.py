@@ -1,59 +1,53 @@
 from dataclasses import dataclass
-from typing import Tuple, Dict, Any, Self
-from hashlib import sha256
-import json
-
-import abc
+from typing import Tuple, Dict, Any
+import xarray
 
 ABS_MAX_X = 180
 ABS_MAX_Y = 90
 VALID_COLOUR_MAPS = ["haxby", "geo"]
 
 @dataclass
-class TwoDimensionalImageOptions:
-    region_min_x: float
-    region_max_x: float
-    region_min_y: float
-    region_max_y: float
-    colour_map_name: str # may need options?
-    contours_enabled: bool
-    contour_line_interval: float
-    contour_annotation_interval: float
-    gradient_shading_enabled: bool
+class RegionOptions:
+    min_x: float
+    max_x: float
+    min_y: float
+    max_y: float
 
-    @property
-    def region(self) -> Tuple[float, float, float, float]:
+    def as_tuple(self) -> Tuple[float, float, float, float]:
         return (
-            self.region_min_x,
-            self.region_max_x,
-            self.region_min_y,
-            self.region_max_y
+            self.min_x,
+            self.max_x,
+            self.min_y,
+            self.max_y
         )
 
-    @property
-    def colour_map(self):
-        pass
-
-    def is_differentiable(self):
-        x_valid = abs(self.region_min_x) < ABS_MAX_X and abs(self.region_max_x) < ABS_MAX_X
-        y_valid = abs(self.region_min_y) < ABS_MAX_Y and abs(self.region_max_y) < ABS_MAX_Y
+    def is_differentiable(self) -> bool:
+        x_valid = abs(self.min_x) < ABS_MAX_X and abs(self.max_x) < ABS_MAX_X
+        y_valid = abs(self.min_y) < ABS_MAX_Y and abs(self.max_y) < ABS_MAX_Y
         return x_valid and y_valid
-
-    def calculate_hash(self):
-        return sha256(json.dumps(self.__dict__).encode()).hexdigest()
+    
+    def is_valid(self) -> bool:
+        return self.min_x < self.max_x and self.min_y < self.max_y
 
     @staticmethod
-    def load_options(received: Dict[str, Any]):
-        return TwoDimensionalImageOptions(
-            region_min_x=received["region"]["min_x"],
-            region_max_x=received["region"]["max_x"],
-            region_min_y=received["region"]["min_y"],
-            region_max_y=received["region"]["max_y"],
-            colour_map_name=received["colour_map"],
-            contours_enabled=received["contours"]["enabled"],
-            contour_line_interval=float(received["contours"]["line_interval"]),
-            contour_annotation_interval=float(received["contours"]["annotation_interval"]),
-            gradient_shading_enabled=received["gradient_shading_enabled"]
+    def load_options(received: Dict[str, Any]) -> "RegionOptions":
+        return RegionOptions(
+            min_x=received["region"]["min_x"],
+            max_x=received["region"]["max_x"],
+            min_y=received["region"]["min_y"],
+            max_y=received["region"]["max_y"]
         )
 
+def load_displacement_map(pixels_per_degree, apply_transform=True):
+    loc = f"../../data/displacement/ldem_{pixels_per_degree}.tif"
 
+    xds = xarray.open_dataset(loc, engine="rasterio")
+    xds = xds.squeeze()
+
+    if apply_transform:
+        xds["x"] = xds["x"] / pixels_per_degree - 180
+        xds["y"] = 90 - xds["y"] / pixels_per_degree
+
+    arr = xds.to_array().squeeze()
+
+    return xds, arr
