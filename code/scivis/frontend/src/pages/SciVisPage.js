@@ -2,6 +2,8 @@ import axios from 'axios';
 import React, { useEffect, useState } from 'react'
 import { TwoDimensionalImagePanel } from '../components/TwoDimensionalImagePanel'
 import { LoadingHolder } from '../components/LoadingHolder';
+import { ThreeDimensionalImagePanel } from '../components/ThreeDimensionalImagePanel';
+import { mod } from '../components/utils';
 
 const absoluteXBound = 180;
 const absoluteYBound = 90;
@@ -13,6 +15,8 @@ const resolutionLookup = {
 }
 
 export const SciVisPage = () => {
+  const [shouldFastPerspectiveUpdate, setShouldFastPerspectiveUpdate] = useState(false);
+
   // 
   const [twoDViewLoading, set2DViewLoading] = useState(true);
   const [threeDViewLoading, set3DViewLoading] = useState(true);
@@ -36,10 +40,10 @@ export const SciVisPage = () => {
   const [threeDImageLocation, set3DImageLocation] = useState(null);
   const [threeDImageRefreshKey, set3DImageRefreshKey] = useState(Date.now());
 
-  const [regionMinX, setRegionMinX] = useState(-180);
-  const [regionMaxX, setRegionMaxX] = useState(180);
-  const [regionMinY, setRegionMinY] = useState(-90);
-  const [regionMaxY, setRegionMaxY] = useState(90);
+  const [regionMinX, setRegionMinX] = useState(-40);
+  const [regionMaxX, setRegionMaxX] = useState(40);
+  const [regionMinY, setRegionMinY] = useState(-40);
+  const [regionMaxY, setRegionMaxY] = useState(40);
 
   const [resolution, setResolution] = useState("normal");
 
@@ -47,12 +51,12 @@ export const SciVisPage = () => {
   const [nextResolution, setNextResolution] = useState("normal");
 
   // Shared Main Options
-  const [mainPlotDisplay, setMainPlotDisplay] = useState("2d");
+  const [mainPlotDisplay, setMainPlotDisplay] = useState("3d"); // useState("2d");
 
-  const [nextRegionMinX, setNextRegionMinX] = useState(-180);
-  const [nextRegionMaxX, setNextRegionMaxX] = useState(180);
-  const [nextRegionMinY, setNextRegionMinY] = useState(-90);
-  const [nextRegionMaxY, setNextRegionMaxY] = useState(90);
+  const [nextRegionMinX, setNextRegionMinX] = useState(-40);
+  const [nextRegionMaxX, setNextRegionMaxX] = useState(40);
+  const [nextRegionMinY, setNextRegionMinY] = useState(-40);
+  const [nextRegionMaxY, setNextRegionMaxY] = useState(40);
 
   const [colourMap, setColourMap] = useState("geo");
 
@@ -67,12 +71,35 @@ export const SciVisPage = () => {
   const [perspectiveElevation, setPerspectiveElevation] = useState(30);
 
   // Heat Map Options
-  const [heatMapColourMap, setHeatMapColourMap] = useState("rocket");
+  const [heatMapColourMap, setHeatMapColourMap] = useState("mako");
 
   // Glyph Plot Options
+  const [glyphPlotSampleAuto, setGlyphPlotSampleAuto] = useState(true);
   const [glyphPlotSampleRatio, setGlyphPlotSampleRatio] = useState(0.4);
+  const [glyphPlotColourMap, setGlyphPlotColourMap] = useState("rocket");
 
-  // Histogram Options
+  const [minDisp, setMinDisp] = useState(0);
+  const [maxDisp, setMaxDisp] = useState(0);
+
+  const fastUpdateAzimuth = (degrees) => {
+    setPerspectiveAzimuth(mod(Number(perspectiveAzimuth) + Number(degrees), 360));
+    setShouldFastPerspectiveUpdate(true);
+  }
+
+  const fastUpdateElevation = (degrees) => {
+    setPerspectiveElevation(Number(perspectiveElevation) + Number(degrees));
+    setShouldFastPerspectiveUpdate(true);
+  }
+
+  useEffect(() => {
+    if(!shouldFastPerspectiveUpdate) {
+      return;
+    }
+
+    load3DMap();
+
+    setShouldFastPerspectiveUpdate(false);
+  }, [shouldFastPerspectiveUpdate]);
 
   const changeResolution = async () => {
     let result;
@@ -119,7 +146,10 @@ export const SciVisPage = () => {
       return;
     }
     
-    const { output_location: outputLoc, legend_location: legendLoc, selected_raw: selectedRaw } = result.data;
+    const { output_location: outputLoc, legend_location: legendLoc, selected_raw: selectedRaw, min_disp: foundMinDisp, max_disp: foundMaxDisp } = result.data;
+
+    setMinDisp(foundMinDisp);
+    setMaxDisp(foundMaxDisp);
 
     set2DImageLocation(outputLoc);
     set2DLegendLocation(legendLoc);
@@ -130,7 +160,7 @@ export const SciVisPage = () => {
     set2DViewLoading(false);
   }
 
-  const load3DMap = async() => {
+  const load3DMap = async () => {
     set3DViewLoading(true);
 
     const options = {
@@ -161,7 +191,10 @@ export const SciVisPage = () => {
       return;
     }
     
-    const { output_location: outputLoc } = result.data;
+    const { output_location: outputLoc, min_disp: foundMinDisp, max_disp: foundMaxDisp } = result.data;
+
+    setMinDisp(foundMinDisp);
+    setMaxDisp(foundMaxDisp);
 
     set3DImageLocation(outputLoc);
     set3DImageRefreshKey(Date.now());
@@ -173,18 +206,21 @@ export const SciVisPage = () => {
   const loadMaps = async () => {
     await changeResolution();
 
-    loadGlyphPlot();
+    loadGlyphPlot(false);
     loadHeatMap();
 
+    set2DViewLoading(true);
+    set3DViewLoading(true);
+
     if(mainPlotDisplay === "both" || mainPlotDisplay === "2d") {
-      load2DMap();
+      await load2DMap();
       set2DVisible(true);
     } else {
       set2DVisible(false);
     }
 
     if(mainPlotDisplay === "both" || mainPlotDisplay === "3d") {
-      load3DMap();
+      await load3DMap();
       set3DVisible(true);
     } else {
       set3DVisible(false);
@@ -206,7 +242,8 @@ export const SciVisPage = () => {
         "min_y": nextRegionMinY,
         "max_y": nextRegionMaxY,
       },
-      "colour_map": heatMapColourMap
+      "colour_map": heatMapColourMap,
+      "force_regen": true
     }
 
     let result;
@@ -225,17 +262,19 @@ export const SciVisPage = () => {
     setHeatMapLoading(false);
   }
 
-  const loadGlyphPlot = async() => {
+  const loadGlyphPlot = async(inline) => {
     setGlyphPlotLoading(true);
 
     const options = {
       "region": {
-        "min_x": nextRegionMinX,
-        "max_x": nextRegionMaxX,
-        "min_y": nextRegionMinY,
-        "max_y": nextRegionMaxY,
+        "min_x": inline ? regionMinX : nextRegionMinX,
+        "max_x": inline ? regionMaxX : nextRegionMaxX,
+        "min_y": inline ? regionMinY : nextRegionMinY,
+        "max_y": inline ? regionMaxY : nextRegionMaxY,
       },
-      "sample_ratio": glyphPlotSampleRatio
+      "sample_ratio": glyphPlotSampleAuto ? "auto" : glyphPlotSampleRatio,
+      "colour_map": glyphPlotColourMap,
+      "force_regen": true
     }
 
     let result;
@@ -260,10 +299,43 @@ export const SciVisPage = () => {
 
   return (
     <div className="flex-row">
-      <div className="width-75 flex-col">
+      <div className="width-75 flex-col plots-panel">
+        <div className="flex-col plot-panel">
+          <h2>Selected Region Information</h2>
+          <span>Displaying Region: {regionMinX}° ≤ x ≤ {regionMaxX}°, {regionMinY}° ≤ y ≤ {regionMaxY}°</span>
+          <span>Displacement Range: {minDisp} km ≤ z ≤ {maxDisp} km</span>
+        </div>
+        {
+          threeDVisible ? (
+            <div className="flex-col plot-panel">
+              <div className="flex-col description-panel">
+                <h1>3D Displacement Map</h1>
+                <span>Displays a 3D perspective map of the selected region. Use the arrows to rotate the plot or manually adjust the settings on the right.</span>
+              </div>
+              {
+                threeDImageLocation === null || threeDViewLoading ? (
+                  <LoadingHolder />
+                ) : (
+                  <ThreeDimensionalImagePanel
+                    imageLocation={threeDImageLocation}
+                    fastUpdateAzimuth={fastUpdateAzimuth}
+                    fastUpdateElevation={fastUpdateElevation}
+                    currentElevation={perspectiveElevation}
+                    currentAzimuth={perspectiveAzimuth}
+                    key={threeDImageRefreshKey}
+                  />
+                )
+              }
+            </div>
+          ) : null
+        }
         {
           twoDVisible ? (
-            <>
+            <div className="flex-col plot-panel">
+              <div className="flex-col description-panel">
+                <h1>2D Displacement Map</h1>
+                <span>Displays a 2D top-down view of the selected region. Hover over the plot to see the exact displacement values.</span>
+              </div>
               {
                 twoDImageLocation === null || twoDViewLoading ? (
                   <LoadingHolder />
@@ -287,30 +359,16 @@ export const SciVisPage = () => {
                   />
                 )
               }
-            </>
+            </div>
           ) : null
         }
-        {
-          threeDVisible ? (
-            <>
-              {
-                threeDImageLocation === null || threeDViewLoading ? (
-                  <LoadingHolder />
-                ) : (
-                  <img 
-                    src={`http://localhost:5000/generated/${threeDImageLocation}`}
-                    className="map-display"
-                    alt="test"
-                  />
-                )
-              }
-            </>
-          ) : null
-        }
-        
-        <div className="flex-row">
-          <div className="flex-col width-50">
-            <h2>Heat Map</h2>
+        <div className="flex-row plot-panel bottom-panel">
+          <div className="flex-col width-50 segment-panel">
+            <div className="flex-col description-panel">
+              <h2>Heat Map</h2>
+              <span>Displays a 2D Heat Map of the selected region showing the magnitude of the gradient at each point.</span>
+              <span>Collective regions of low gradient suggest flat areas relative to the rest of the region.</span>
+            </div>
             {
               heatMapLocation === null || heatMapLoading ? (
                 <LoadingHolder />
@@ -323,8 +381,12 @@ export const SciVisPage = () => {
               )
             }
           </div>
-          <div className="flex-col width-50">
-            <h2>Glyph Plot</h2>
+          <div className="flex-col width-50 segment-panel">
+            <div className="flex-col description-panel">
+              <h2>Glyph Map</h2>
+              <span>Displays a 2D Glyph Plot of the selected region showing the direction and magnitude of the gradients at each point.</span>
+              <span>Regions with small arrows suggest flat areas relative to the rest of the region.</span>
+            </div>
             {
               glyphPlotLoading === null || glyphPlotLoading ? (
                 <LoadingHolder />
@@ -339,7 +401,7 @@ export const SciVisPage = () => {
           </div>
         </div>
       </div>
-      <div className="width-25 flex-col">
+      <div className="width-25 flex-col options-panel">
         <h1>Map Options</h1>
         <div className="flex-col contained">
           <h2>Primary Settings</h2>
@@ -360,7 +422,7 @@ export const SciVisPage = () => {
         <div className="flex-col contained">
           <h2>Height Plot Settings</h2>
           <div className="flex-col contained">
-            <h3>Shared</h3>
+            <h3>2D and 3D Shared Settings</h3>
             <div className="input-container">
               <div className="input-row">
                 <span>Main Plot Type:</span>
@@ -381,12 +443,14 @@ export const SciVisPage = () => {
                 <input 
                   value={nextRegionMinX}
                   onChange={(e) => setNextRegionMinX(e.target.value)}
-                /> 
-                <span>{"<"} x {"<"} </span>
+                  type="number"
+                />° 
+                <span>≤ x ≤</span>
                 <input 
                   value={nextRegionMaxX}
                   onChange={(e) => setNextRegionMaxX(e.target.value)}
-                />
+                  type="number"
+                />°
               </div>
               <span className="input-help"></span>
             </div>
@@ -396,12 +460,14 @@ export const SciVisPage = () => {
                 <input 
                   value={nextRegionMinY} 
                   onChange={(e) => setNextRegionMinY(e.target.value)}
-                /> 
-                <span>{"<"} y {"<"} </span>
+                  type="number"
+                />°
+                <span>≤ y ≤</span>
                 <input 
                   value={nextRegionMaxY} 
                   onChange={(e) => setNextRegionMaxY(e.target.value)}
-                />
+                  type="number"
+                />°
               </div>
               <span className="input-help"></span>
             </div>
@@ -470,9 +536,6 @@ export const SciVisPage = () => {
             }
           </div>
           <div className="flex-col contained">
-            <h3>2D Specific Options</h3>
-          </div>
-          <div className="flex-col contained">
             <h3>3D Specific Options</h3>
             <div className="input-container">
               <div className="input-row">
@@ -505,16 +568,19 @@ export const SciVisPage = () => {
           <h2>Gradient Plots</h2>
           <div className="flex-col contained">
             <h3>Heatmap</h3>
-            <span>Visualise gradient magnitude to identify relatively flat locations</span>
             <div className="input-container">
               <div className="input-row">
-                <span>Heat Map Colour Map</span>
+                <span>Heat Map Colour Map:</span>
                 <select
                   value={heatMapColourMap}
                   onChange={(e) => setHeatMapColourMap(e.target.value)}
                 >
                   <option value="rocket">Rocket</option>
                   <option value="mako">Mako</option>
+                  <option value="flare">Flare</option>
+                  <option value="crest">Crest</option>
+                  <option value="magma">Magma</option>
+                  <option value="viridis">Viridis</option>
                 </select>
               </div>
               <span className="input-help"></span>
@@ -523,28 +589,51 @@ export const SciVisPage = () => {
           </div>
           <div className="flex-col contained">
             <h3>Glyph Plot</h3>
-            <span>Visualise gradients as glyphs to identify directional changes in gradient</span>
             <div className="input-container">
               <div className="input-row">
-                <span>Sample Ratio</span>
+                <span>Glyph Plot Colour Map:</span>
+                <select
+                  value={glyphPlotColourMap}
+                  onChange={(e) => setGlyphPlotColourMap(e.target.value)}
+                >
+                  <option value="rocket">Rocket</option>
+                  <option value="mako">Mako</option>
+                  <option value="flare">Flare</option>
+                  <option value="crest">Crest</option>
+                  <option value="magma">Magma</option>
+                  <option value="viridis">Viridis</option>
+                </select>
+              </div>
+              <span className="input-help"></span>
+            </div>
+            <div className="input-container">
+              <div className="input-row">
+                <span>Auto Sample Ratio:</span>
+                <input
+                  type="checkbox"
+                  checked={glyphPlotSampleAuto}
+                  onChange={(e) => setGlyphPlotSampleAuto(e.target.checked)}
+                />
+              </div>
+              <span className="input-help"></span>
+            </div>
+            { glyphPlotSampleAuto ? null : (
+              <div className="input-container">
+              <div className="input-row">
+                <span>Sample Ratio:</span>
                 <input
                   type="number"
                   value={glyphPlotSampleRatio}
                   min={0.0001}
                   max={1}
+                  step={0.01}
                   onChange={(e) => setGlyphPlotSampleRatio(e.target.value)}
                 />
               </div>
               <span className="input-help"></span>
-            </div>
-            <div className="flex-row">
-            </div>
-            <button onClick={loadGlyphPlot}>Update Glyph Plot</button>
-          </div>
-          <div className="flex-col contained">
-            <h4>Histogram</h4>
-            <span>Visualise distribution of gradients to summarise the flatness of the region</span>
-            {/* <button onClick={loadHistogramPlot}>Load Histogram Plot</button> */}
+              </div>
+            )}
+            <button onClick={() => loadGlyphPlot(true)}>Update Glyph Plot</button>
           </div>
         </div>
       </div>

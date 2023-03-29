@@ -12,9 +12,6 @@ export const TwoDimensionalImagePanel = (props) => {
 
   const overlayRef = useRef();
 
-  const [minDisp, setMinDisp] = useState(0);
-  const [maxDisp, setMaxDisp] = useState(0);
-
   const [nextRegionMinX, setNextRegionMinX] = useState(regionMinX);
   const [nextRegionMaxX, setNextRegionMaxX] = useState(regionMaxX);
   const [nextRegionMinY, setNextRegionMinY] = useState(regionMinY);
@@ -27,21 +24,6 @@ export const TwoDimensionalImagePanel = (props) => {
   const [cornerOne, setCornerOne] = useState([null, null]);
   const [cornerTwo, setCornerTwo] = useState([null, null]);
   const [currentCorner, setCurrentCorner] = useState(true); 
-
-  useEffect(() => {
-    let currentMax = -1000;
-    let currentMin = 1000;
-
-    for(let i = 0; i < rawDisplacements.length; i++) {
-      for(let j = 0; j < rawDisplacements[i].length; j++) {
-        currentMax = Math.max(rawDisplacements[i][j], currentMax);
-        currentMin = Math.min(rawDisplacements[i][j], currentMin)
-      }
-    }
-
-    setMinDisp(currentMin);
-    setMaxDisp(currentMax);
-  }, [rawDisplacements]);
 
   const onRegionSelectClick = (e) => {
     const { clientX, clientY } = e;
@@ -138,13 +120,11 @@ export const TwoDimensionalImagePanel = (props) => {
 
   return (
     <div>
-      <h1>2D Displacement Map</h1>
-      <div className="flex-col">
-        <div className="flex-col contained">
-          <span>Displaying Region: {regionMinX} {"<="} x {"<="} {regionMaxX}, {regionMinY} {"<="} y {"<="} {regionMaxY}</span>
-          <span>Displacement Range: {minDisp} {"<="} z {"<="} {maxDisp}</span>
-          <span>Current Values: {currentCoordinates[0] === null ? "Outside Region" : `(${currentCoordinates[0]}, ${currentCoordinates[1]}, ${currentDisplacement})`}</span>
-        </div>
+      <div className="flex-col description-panel">
+        <span>
+          <strong>Current Values: </strong>
+          {currentCoordinates[0] === null ? "Outside Region" : `Latitude (x): ${currentCoordinates[0]}°, Longitude (y): ${currentCoordinates[1]}°, Displacement (z): ${currentDisplacement} km`}
+        </span> 
       </div>
       <div
         style={{
@@ -159,6 +139,7 @@ export const TwoDimensionalImagePanel = (props) => {
           className="map-display"
           alt="test"
         />
+        
         <div className="map-overlay" 
           onClick={onRegionSelectClick}
           onMouseLeave={onMouseOut}

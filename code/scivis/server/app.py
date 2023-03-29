@@ -75,6 +75,9 @@ def generate_2d_map():
     selected_grid = grid[(90 - region.max_y) * pixels_per_degree : (90 - region.min_y) * pixels_per_degree, 
                        (region.min_x + 180) * pixels_per_degree : (region.max_x + 180) * pixels_per_degree].to_numpy()
 
+    min_disp = selected_grid.min()
+    max_disp = selected_grid.max()
+
     # print(
     #     (90 - options.region_max_y) * pixels_per_degree,
     #     (90 - options.region_min_y) * pixels_per_degree,
@@ -161,7 +164,9 @@ def generate_2d_map():
         "output_location": f"{options_hash}_2d_no_legend.png",
         "legend_location": f"{options_hash}_2d_legend_only.png",
         "generation_time": delta,
-        "selected_raw": selected_grid.tolist()
+        "selected_raw": selected_grid.tolist(),
+        "min_disp": float(min_disp),
+        "max_disp": float(max_disp)
     }
 
 @app.post("/generate/3d")
@@ -183,6 +188,13 @@ def generate_3d():
     
     # To remove the need to constantly regenerate, we cache using hashes to identify
     perspective_save_loc = f"./generated/{options_hash}_perspective.png"
+
+    # The part of the grid that is specified by the region
+    selected_grid = grid[(90 - region.max_y) * pixels_per_degree : (90 - region.min_y) * pixels_per_degree, 
+                       (region.min_x + 180) * pixels_per_degree : (region.max_x + 180) * pixels_per_degree].to_numpy()
+
+    min_disp = selected_grid.min()
+    max_disp = selected_grid.max()
 
     # Forcefully cause a regeneration of the images
     if force_regen:
@@ -216,7 +228,9 @@ def generate_3d():
         fig.savefig(perspective_save_loc)
 
     return {
-        "output_location": f"{options_hash}_perspective.png"
+        "output_location": f"{options_hash}_perspective.png",
+        "min_disp": float(min_disp),
+        "max_disp": float(max_disp)
     }
 
 @app.post("/generate/gradient_glyphs")
@@ -252,7 +266,7 @@ def generate_glyphs():
         # Calculate gradients and generate the glyph plot
         npg = np.array(np.gradient(selected_grid))
         sample_ratio = options.get("sample_ratio", "auto")
-        graphs.generate_gradient_glyphs(npg, sample_ratio, glyph_save_loc)
+        graphs.generate_gradient_glyphs(npg, sample_ratio, options.get("colour_map", "rocket"), region, glyph_save_loc)
 
     return {
         "file_loc": f"{options_hash}_glyphs.png"
@@ -290,7 +304,7 @@ def generate_heatmap():
     if not os.path.isfile(heatmap_save_loc):
         # Calculate gradients and generate the magnitude heatmap
         npg = np.array(np.gradient(selected_grid))
-        graphs.generate_gradient_magnitude_heatmap(npg, options.get("colour_map", "rocket"), heatmap_save_loc)
+        graphs.generate_gradient_magnitude_heatmap(npg, options.get("colour_map", "rocket"), region, heatmap_save_loc)
 
     return {
         "file_loc": f"{options_hash}_heatmap.png"

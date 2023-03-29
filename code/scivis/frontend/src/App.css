@@ -36,12 +36,44 @@ Map Display
   left: 0;
   right: 0;
   bottom: 0;
-  color: white;
+}
+
+.arrow-main-div {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  width: 100%;
+}
+
+.arrow-horizontal-div {
+  width: 100%;
+  display: flex;
+  color: blueviolet;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .selected-region {
   background: rgba(255, 255, 255, 0.75);
   position: absolute;
+}
+
+input[type=number] {
+  width: 4rem;
+  text-align: center;
+}
+
+input[type=checkbox] {
+  width: 1rem;
+  height: 1rem;
+}
+
+input, select {
+  padding-top: 0.1rem;
+  padding-bottom: 0.1rem;
+  margin-top: 0.2rem;
 }
 
 .map-display {
@@ -55,17 +87,15 @@ Map Display
 
 .width-75 {
   width: 75%;
-  border: 1px solid black;
 }
 
 .width-25 {
   width: 25%;
-  border: 1px solid black;
+  border-left: 0.2rem black solid;
 }
 
 .width-50 {
   width: 50%;
-  border: 1px solid black;
 }
 
 .height-100 {
@@ -86,6 +116,7 @@ Map Display
 .input-row {
   display: flex;
   flex-direction: row;
+  align-items: center;
 }
 
 .input-help {
@@ -120,4 +151,38 @@ Map Display
   padding: 0.3rem;
   margin-top: 0.3rem;
   margin-bottom: 0.3rem;
+}
+
+.options-panel, .plots-panel {
+  padding: 0.3rem;
+}
+
+.plot-panel {
+  border-bottom: 0.2rem black solid;
+  padding-bottom: 0.5rem;
+}
+
+.plot-panel:last-of-type {
+  border-bottom: 0;
+}
+
+.bottom-panel {
+  margin-top: 0.5rem;
+}
+
+.segment-panel {
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
+}
+
+.segment-panel:last-of-type {
+  border-left: 0.2rem solid black;
+}
+
+.description-panel {
+  margin-bottom: 0.5rem;
+}
+
+.input-row > span {
+  margin-right: 0.2rem;
 }

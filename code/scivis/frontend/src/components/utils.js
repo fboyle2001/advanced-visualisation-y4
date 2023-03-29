@@ -6,4 +6,9 @@ const coordRounding = (raw, pixelsPerDegree, lower, upper) => {
     return clamp(Math.round(raw * pixelsPerDegree) / pixelsPerDegree, lower, upper);
 }
 
-export { clamp, coordRounding };
+// Credit: https://stackoverflow.com/a/17323608 by StuR
+const mod = (n, m) => {
+    return ((n % m) + m) % m;
+}
+
+export { clamp, coordRounding, mod };
