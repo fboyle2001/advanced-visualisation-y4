@@ -5,8 +5,6 @@ import { LoadingHolder } from '../components/LoadingHolder';
 import { ThreeDimensionalImagePanel } from '../components/ThreeDimensionalImagePanel';
 import { mod } from '../components/utils';
 
-const absoluteXBound = 180;
-const absoluteYBound = 90;
 const apiURL = "http://127.0.0.1:5000";
 
 const resolutionLookup = {
@@ -15,7 +13,11 @@ const resolutionLookup = {
 }
 
 export const SciVisPage = () => {
+  const [inputValid, setInputValid] = useState(true);
+  const [inputValidMessage, setInputValidMessage] = useState("");
+
   const [shouldFastPerspectiveUpdate, setShouldFastPerspectiveUpdate] = useState(false);
+  const [shouldFastUpdateAll, setShouldFastUpdateAll] = useState(false);
 
   // 
   const [twoDViewLoading, set2DViewLoading] = useState(true);
@@ -51,17 +53,20 @@ export const SciVisPage = () => {
   const [nextResolution, setNextResolution] = useState("normal");
 
   // Shared Main Options
-  const [mainPlotDisplay, setMainPlotDisplay] = useState("3d"); // useState("2d");
+  const [mainPlotDisplay, setMainPlotDisplay] = useState("2d");
 
-  const [nextRegionMinX, setNextRegionMinX] = useState(-40);
-  const [nextRegionMaxX, setNextRegionMaxX] = useState(40);
-  const [nextRegionMinY, setNextRegionMinY] = useState(-40);
-  const [nextRegionMaxY, setNextRegionMaxY] = useState(40);
+  const [nextRegionMinX, setNextRegionMinX] = useState(-180);
+  const [nextRegionMaxX, setNextRegionMaxX] = useState(180);
+  const [nextRegionMinY, setNextRegionMinY] = useState(-90);
+  const [nextRegionMaxY, setNextRegionMaxY] = useState(90);
 
   const [colourMap, setColourMap] = useState("geo");
+  const [zebraStripeCount, setZebraStripeCount] = useState(8);
 
   const [contoursEnabled, setContoursEnabled] = useState(false);
   const [contourLineInterval, setContourLineInterval] = useState(-1);
+  const [contourLineColour, setContourLineColour] = useState("black");
+  const [contourLineThickness, setContourLineThickness] = useState(1);
   const [contourAnnotationInterval, setContourAnnotationInterval] = useState(-1);
   
   const [gradientShadingEnabled, setGradientShadingEnabled] = useState(false);
@@ -76,7 +81,7 @@ export const SciVisPage = () => {
   // Glyph Plot Options
   const [glyphPlotSampleAuto, setGlyphPlotSampleAuto] = useState(true);
   const [glyphPlotSampleRatio, setGlyphPlotSampleRatio] = useState(0.4);
-  const [glyphPlotColourMap, setGlyphPlotColourMap] = useState("rocket");
+  const [glyphPlotColourMap, setGlyphPlotColourMap] = useState("flare");
 
   const [minDisp, setMinDisp] = useState(0);
   const [maxDisp, setMaxDisp] = useState(0);
@@ -91,6 +96,61 @@ export const SciVisPage = () => {
     setShouldFastPerspectiveUpdate(true);
   }
 
+  const checkValidity = () => {
+    if(nextRegionMinX?.length === 0 || Number(nextRegionMinX) < -180) {
+      return [false, "Latitude must be >= -180"];
+    }
+
+    if(nextRegionMaxX?.length === 0 || Number(nextRegionMaxX) > 180) {
+      return [false, "Latitude must be <= 180"];
+    }
+
+    if(nextRegionMinY?.length === 0 || Number(nextRegionMinY) < -90) {
+      return [false, "Longitude must be >= -90"];
+    }
+
+    if(nextRegionMaxY?.length === 0 || Number(nextRegionMaxY) > 90) {
+      return [false, "Longitude must be <= 90"];
+    }
+
+    if(Number(nextRegionMinX) >= Number(nextRegionMaxX)) {
+      return [false, "Minimum latitude must be less than the maximum"];
+    }
+    
+    if(Number(nextRegionMinY) >= Number(nextRegionMaxY)) {
+      return [false, "Minimum longitude must be less than the maximum"];
+    }
+
+    if(perspectiveAzimuth?.length === 0 || Number(perspectiveAzimuth) > 360) {
+      return [false, "Elevation must <= 360"];
+    }
+
+    if(Number(perspectiveAzimuth) < 0) {
+      return [false, "Elevation must >= 0"];
+    }
+
+    if(perspectiveElevation?.length === 0 || Number(perspectiveElevation) >= 90) {
+      return [false, "Elevation must < 90"];
+    }
+
+    if(Number(perspectiveElevation) <= 0) {
+      return [false, "Elevation must > 0"];
+    }
+
+    if(glyphPlotSampleRatio?.length === 0 || Number(glyphPlotSampleRatio <= 0) || Number(glyphPlotSampleRatio > 1)) {
+      return [false, "Glyph plot sample ratio must between 0 and 1."];
+    }
+
+    return [true, ""];
+  }
+
+  useEffect(() => {
+    const [valid, message] = checkValidity();
+
+    setInputValid(valid);
+    setInputValidMessage(message);
+  }, [nextRegionMinX, nextRegionMaxX, nextRegionMinY, nextRegionMaxY, perspectiveAzimuth, perspectiveElevation, mainPlotDisplay, glyphPlotSampleRatio]);
+
   useEffect(() => {
     if(!shouldFastPerspectiveUpdate) {
       return;
@@ -100,6 +160,27 @@ export const SciVisPage = () => {
 
     setShouldFastPerspectiveUpdate(false);
   }, [shouldFastPerspectiveUpdate]);
+
+  useEffect(() => {
+    if(!shouldFastUpdateAll) {
+      return;
+    }
+
+    loadMaps();
+
+    setShouldFastUpdateAll(false);
+  }, [shouldFastUpdateAll]);
+
+  const resetToGlobalView = () => {
+    setNextRegionMinX(-180);
+    setNextRegionMaxX(180);
+    setNextRegionMinY(-90);
+    setNextRegionMaxY(90);
+
+    setMainPlotDisplay("2d");
+
+    setShouldFastUpdateAll(true);
+  }
 
   const changeResolution = async () => {
     let result;
@@ -128,12 +209,16 @@ export const SciVisPage = () => {
         "max_y": nextRegionMaxY,
       },
       "colour_map": colourMap,
+      "zebra_stripe_count": zebraStripeCount,
       "contours": {
         "enabled": contoursEnabled,
         "line_interval": contourLineInterval,
-        "annotation_interval": contourAnnotationInterval
+        "line_thickness": contourLineThickness,
+        "line_colour": contourLineColour,
+        "annotation_interval": contourAnnotationInterval,
       },
-      "gradient_shading_enabled": gradientShadingEnabled
+      "gradient_shading_enabled": gradientShadingEnabled,
+      "force_regen": false
     };
 
     let result;
@@ -156,8 +241,8 @@ export const SciVisPage = () => {
     set2DRawDisplacements(selectedRaw);
     set2DImageRefreshKey(Date.now());
 
-    set2DVisible(true);
     set2DViewLoading(false);
+    set2DVisible(true);
   }
 
   const load3DMap = async () => {
@@ -174,11 +259,14 @@ export const SciVisPage = () => {
       "contours": {
         "enabled": contoursEnabled,
         "line_interval": contourLineInterval,
+        "line_thickness": contourLineThickness,
+        "line_colour": contourLineColour,
         "annotation_interval": contourAnnotationInterval
       },
       "gradient_shading_enabled": gradientShadingEnabled,
       "azimuth": perspectiveAzimuth,
-      "elevation": perspectiveElevation
+      "elevation": perspectiveElevation,
+      "force_regen": false
     };
 
     let result;
@@ -226,10 +314,10 @@ export const SciVisPage = () => {
       set3DVisible(false);
     }
 
-    setRegionMinX(nextRegionMinX);
-    setRegionMaxX(nextRegionMaxX);
-    setRegionMinY(nextRegionMinY);
-    setRegionMaxY(nextRegionMaxY);
+    setRegionMinX(Number(nextRegionMinX));
+    setRegionMaxX(Number(nextRegionMaxX));
+    setRegionMinY(Number(nextRegionMinY));
+    setRegionMaxY(Number(nextRegionMaxY));
   }
 
   const loadHeatMap = async() => {
@@ -243,7 +331,7 @@ export const SciVisPage = () => {
         "max_y": nextRegionMaxY,
       },
       "colour_map": heatMapColourMap,
-      "force_regen": true
+      "force_regen": false
     }
 
     let result;
@@ -274,7 +362,7 @@ export const SciVisPage = () => {
       },
       "sample_ratio": glyphPlotSampleAuto ? "auto" : glyphPlotSampleRatio,
       "colour_map": glyphPlotColourMap,
-      "force_regen": true
+      "force_regen": false
     }
 
     let result;
@@ -330,11 +418,12 @@ export const SciVisPage = () => {
           ) : null
         }
         {
-          twoDVisible ? (
+          twoDVisible  ? (
             <div className="flex-col plot-panel">
               <div className="flex-col description-panel">
                 <h1>2D Displacement Map</h1>
                 <span>Displays a 2D top-down view of the selected region. Hover over the plot to see the exact displacement values.</span>
+                <span>Click two points on the map to select a region to zoom in on!</span>
               </div>
               {
                 twoDImageLocation === null || twoDViewLoading ? (
@@ -386,6 +475,7 @@ export const SciVisPage = () => {
               <h2>Glyph Map</h2>
               <span>Displays a 2D Glyph Plot of the selected region showing the direction and magnitude of the gradients at each point.</span>
               <span>Regions with small arrows suggest flat areas relative to the rest of the region.</span>
+              <span>Works best for small regions</span>
             </div>
             {
               glyphPlotLoading === null || glyphPlotLoading ? (
@@ -402,238 +492,310 @@ export const SciVisPage = () => {
         </div>
       </div>
       <div className="width-25 flex-col options-panel">
-        <h1>Map Options</h1>
-        <div className="flex-col contained">
-          <h2>Primary Settings</h2>
-          <div className="input-container">
-            <div className="input-row">
-              <span>Resolution:</span>
-              <select
-                value={nextResolution}
-                onChange={(e) => setNextResolution(e.target.value)}
-              >
-                <option value="normal">Normal (4 pixels/degree)</option>
-                <option value="high">Very High (16 pixels/degree)</option>
-              </select>
-            </div>
-            <span className="input-help">Use 4</span>
-          </div>
-        </div>
-        <div className="flex-col contained">
-          <h2>Height Plot Settings</h2>
+        <div className="options-sticky">
+          <h1>Map Options</h1>
           <div className="flex-col contained">
-            <h3>2D and 3D Shared Settings</h3>
             <div className="input-container">
               <div className="input-row">
-                <span>Main Plot Type:</span>
+                <span>Resolution:</span>
                 <select
-                  value={mainPlotDisplay}
-                  onChange={(e) => setMainPlotDisplay(e.target.value)}
+                  value={nextResolution}
+                  onChange={(e) => setNextResolution(e.target.value)}
                 >
-                  <option value="2d">2D Only</option>
-                  <option value="3d">3D Only</option>
-                  <option value="both">Both</option>
+                  <option value="normal">Normal (4 pixels/degree)</option>
+                  <option value="high">Very High (16 pixels/degree)</option>
                 </select>
               </div>
-              <span className="input-help">Recommended to use 2D only for large regions!</span>
+              <span className="input-help">Note 16 pixels/degree is substantially slower!</span>
             </div>
-            <div className="input-container">
-              <div className="input-row">
-                <span>Region X:</span>
-                <input 
-                  value={nextRegionMinX}
-                  onChange={(e) => setNextRegionMinX(e.target.value)}
-                  type="number"
-                />° 
-                <span>≤ x ≤</span>
-                <input 
-                  value={nextRegionMaxX}
-                  onChange={(e) => setNextRegionMaxX(e.target.value)}
-                  type="number"
-                />°
+          </div>
+          <div className="flex-col contained">
+            <h2>Height Plot Settings</h2>
+            <button
+              onClick={resetToGlobalView}
+            >Reset to Global View</button>
+            <div className="flex-col contained">
+              <h3>2D and 3D Shared Settings</h3>
+              <div className="input-container">
+                <div className="input-row">
+                  <span>Main Plot Type:</span>
+                  <select
+                    value={mainPlotDisplay}
+                    onChange={(e) => setMainPlotDisplay(e.target.value)}
+                  >
+                    <option value="2d">2D Only</option>
+                    <option value="3d">3D Only</option>
+                    <option value="both">Both</option>
+                  </select>
+                </div>
+                <span className="input-help">Recommended to use 2D only for large regions!</span>
               </div>
-              <span className="input-help"></span>
-            </div>
-            <div className="input-container">
-              <div className="input-row">
-                <span>Region Y:</span>
-                <input 
-                  value={nextRegionMinY} 
-                  onChange={(e) => setNextRegionMinY(e.target.value)}
-                  type="number"
-                />°
-                <span>≤ y ≤</span>
-                <input 
-                  value={nextRegionMaxY} 
-                  onChange={(e) => setNextRegionMaxY(e.target.value)}
-                  type="number"
-                />°
+              <div className="input-container">
+                <div className="input-row">
+                  <span>Region Latitude:</span>
+                  <input 
+                    value={nextRegionMinX}
+                    onChange={(e) => setNextRegionMinX(e.target.value)}
+                    type="number"
+                  />° 
+                  <span>≤ x ≤</span>
+                  <input 
+                    value={nextRegionMaxX}
+                    onChange={(e) => setNextRegionMaxX(e.target.value)}
+                    type="number"
+                  />°
+                </div>
+                <span className="input-help">Between -180 and 180 inclusive, limits cannot be equal.</span>
               </div>
-              <span className="input-help"></span>
-            </div>
-            <div className="input-container">
-              <div className="input-row">
-                <span>Colour Map</span>
-                <select 
-                  value={colourMap}
-                  onChange={(e) => setColourMap(e.target.value)}
-                >
-                  <option value="geo">Geo</option>
-                  <option value="haxby">Rainbow</option>
-                </select>
+              <div className="input-container">
+                <div className="input-row">
+                  <span>Region Longitude:</span>
+                  <input 
+                    value={nextRegionMinY} 
+                    onChange={(e) => setNextRegionMinY(e.target.value)}
+                    type="number"
+                  />°
+                  <span>≤ y ≤</span>
+                  <input 
+                    value={nextRegionMaxY} 
+                    onChange={(e) => setNextRegionMaxY(e.target.value)}
+                    type="number"
+                  />°
+                </div>
+                <span className="input-help">Between -90 and 90 inclusive, limits cannot be equal.</span>
               </div>
-              <span className="input-help"></span>
-            </div>
-            <div className="input-container">
-              <div className="input-row">
-                <span>Gradient Shading Enabled</span>
+              <div className="input-container">
+                <div className="input-row">
+                  <span>Colour Map</span>
+                  <select 
+                    value={colourMap}
+                    onChange={(e) => setColourMap(e.target.value)}
+                  >
+                    <option value="cubhelix">Cubhelix</option>
+                    <option value="elevation">Elevation</option>
+                    <option value="magma">Magma</option>
+                    <option value="lajolla">Lajolla</option>
+                    <option value="hawaii">Hawaii</option>
+                    <option value="davos">Davos</option>
+                    <option value="gray">Gray</option>
+                    <option value="topo">topo</option>
+                    <option value="geo">Geo</option>
+                    <option value="haxby">Rainbow</option>
+                    <option value="zebra">Zebra</option>
+                  </select>
+                </div>
+                <span className="input-help"></span>
+              </div>
+              {
+                colourMap === "zebra" ? (
+                  <div className="input-container">
+                    <div className="input-row">
+                      <span>Zebra Stripe Count:</span>
+                      <input
+                        type="number"
+                        value={zebraStripeCount}
+                        onChange={(e) => setZebraStripeCount(e.target.value)}
+                      />
+                    </div>
+                    <span className="input-help">The number of dividing stripes for the Zebra colour map</span>
+                  </div>
+                ) : null
+              }
+              <div className="input-container">
+                <div className="input-row">
+                  <span>Gradient Shading Enabled</span>
+                  <input
+                    type="checkbox"
+                    checked={gradientShadingEnabled}
+                    onChange={(e) => setGradientShadingEnabled(e.target.checked)}
+                  />
+                </div>
+                <span className="input-help"></span>
+              </div>
+              <div className="flex-row">
+                <span>Contours Enabled</span>
                 <input
                   type="checkbox"
-                  checked={gradientShadingEnabled}
-                  onChange={(e) => setGradientShadingEnabled(e.target.checked)}
+                  checked={contoursEnabled}
+                  onChange={(e) => setContoursEnabled(e.target.checked)}
                 />
               </div>
-              <span className="input-help"></span>
-            </div>
-            <div className="flex-row">
-              <span>Contours Enabled</span>
-              <input
-                type="checkbox"
-                checked={contoursEnabled}
-                onChange={(e) => setContoursEnabled(e.target.checked)}
-              />
-            </div>
-            {
-              contoursEnabled ? (
-                <div className="flex-col contained">
-                  <h4>Contours</h4>
-                  <div className="flex-col">
-                    <div className="input-container">
-                      <div className="input-row">
-                        <span>Contour Line Interval</span>
-                        <input
-                          type="number"
-                          value={contourLineInterval}
-                          onChange={(e) => setContourLineInterval(e.target.value)}
-                        />
+              {
+                contoursEnabled ? (
+                  <div className="flex-col contained">
+                    <h4>Contours</h4>
+                    <div className="flex-col">
+                      <div className="input-container">
+                        <div className="input-row">
+                          <span>Contour Line Interval</span>
+                          <input
+                            min={0}
+                            type="number"
+                            value={contourLineInterval}
+                            onChange={(e) => setContourLineInterval(e.target.value)}
+                          />
+                        </div>
+                        <span className="input-help"></span>
                       </div>
-                      <span className="input-help">Set to -1 to not draw lines</span>
-                    </div>
-                    <div className="input-container">
-                      <div className="input-row">
-                        <span>Contour Annotation Interval</span>
-                        <input
-                          type="number"
-                          value={contourAnnotationInterval}
-                          onChange={(e) => setContourAnnotationInterval(e.target.value)}
-                        />
+                      <div className="input-container">
+                        <div className="input-row">
+                          <span>Contour Line Thickness</span>
+                          <input
+                            type="number"
+                            min={1}
+                            value={contourLineThickness}
+                            onChange={(e) => setContourLineThickness(e.target.value)}
+                          />
+                        </div>
+                        <span className="input-help"></span>
                       </div>
-                      <span className="input-help">Set to -1 to not draw annotations</span>
+                      <div className="input-container">
+                        <div className="input-row">
+                          <span>Contour Line Colour</span>
+                          <select
+                            value={contourLineColour}
+                            onChange={(e) => setContourLineColour(e.target.value)}
+                          >
+                            <option value="black">Black</option>
+                            <option value="blue">Blue</option>
+                            <option value="red">Red</option>
+                            <option value="white">White</option>
+                            <option value="green">Green</option>
+                            <option value="purple">Purple</option>
+                          </select>
+                        </div>
+                        <span className="input-help"></span>
+                      </div>
+                      <div className="input-container">
+                        <div className="input-row">
+                          <span>Contour Annotation Interval</span>
+                          <input
+                            type="number"
+                            value={contourAnnotationInterval}
+                            onChange={(e) => setContourAnnotationInterval(e.target.value)}
+                          />
+                        </div>
+                        <span className="input-help">Set to -1 to not draw annotations</span>
+                      </div>
                     </div>
                   </div>
+                ) : null
+              }
+            </div>
+            <div className="flex-col contained">
+              <h3>3D Specific Options</h3>
+              <div className="input-container">
+                <div className="input-row">
+                  <span>Azimuth:</span>
+                  <input
+                    type="number"
+                    value={perspectiveAzimuth}
+                    onChange={(e) => setPerspectiveAzimuth(e.target.value)}
+                  />
                 </div>
-              ) : null
+                <span className="input-help">Set the horizontal camera angle (between 0 and 360 inclusive).</span>
+              </div>
+              <div className="input-container">
+                <div className="input-row">
+                  <span>Elevation:</span>
+                  <input
+                    type="number"
+                    value={perspectiveElevation}
+                    onChange={(e) => setPerspectiveElevation(e.target.value)}
+                  />
+                </div>
+                <span className="input-help">Set the vertical camera angle (between 0 and 90 exclusive).</span>
+              </div>
+            </div>
+            <button
+              onClick={loadMaps}
+              disabled={!inputValid}
+              className="render-all-button"
+            >Render All Plots</button>
+            {
+              inputValid ? null : (
+                <span>{inputValidMessage}</span>
+              )
             }
           </div>
+          <span>You can also manually adjust the Heatmap and Glyph Plot and load them without reloading the main plots:</span>
           <div className="flex-col contained">
-            <h3>3D Specific Options</h3>
-            <div className="input-container">
-              <div className="input-row">
-                <span>Azimuth:</span>
-                <input
-                  type="number"
-                  value={perspectiveAzimuth}
-                  onChange={(e) => setPerspectiveAzimuth(e.target.value)}
-                />
-              </div>
-              <span className="input-help">Recommeneded to use 2D only for large regions!</span>
-            </div>
-            <div className="input-container">
-              <div className="input-row">
-                <span>Elevation:</span>
-                <input
-                  type="number"
-                  value={perspectiveElevation}
-                  onChange={(e) => setPerspectiveElevation(e.target.value)}
-                />
-              </div>
-              <span className="input-help">Recommeneded to use 2D only for large regions!</span>
-            </div>
-          </div>
-          <button
-            onClick={loadMaps}
-          >Render All Plots</button>
-        </div>
-        <div className="flex-col contained">
-          <h2>Gradient Plots</h2>
-          <div className="flex-col contained">
-            <h3>Heatmap</h3>
-            <div className="input-container">
-              <div className="input-row">
-                <span>Heat Map Colour Map:</span>
-                <select
-                  value={heatMapColourMap}
-                  onChange={(e) => setHeatMapColourMap(e.target.value)}
-                >
-                  <option value="rocket">Rocket</option>
-                  <option value="mako">Mako</option>
-                  <option value="flare">Flare</option>
-                  <option value="crest">Crest</option>
-                  <option value="magma">Magma</option>
-                  <option value="viridis">Viridis</option>
-                </select>
-              </div>
-              <span className="input-help"></span>
-            </div>
-            <button onClick={loadHeatMap}>Update Gradient Heat Map</button>
-          </div>
-          <div className="flex-col contained">
-            <h3>Glyph Plot</h3>
-            <div className="input-container">
-              <div className="input-row">
-                <span>Glyph Plot Colour Map:</span>
-                <select
-                  value={glyphPlotColourMap}
-                  onChange={(e) => setGlyphPlotColourMap(e.target.value)}
-                >
-                  <option value="rocket">Rocket</option>
-                  <option value="mako">Mako</option>
-                  <option value="flare">Flare</option>
-                  <option value="crest">Crest</option>
-                  <option value="magma">Magma</option>
-                  <option value="viridis">Viridis</option>
-                </select>
-              </div>
-              <span className="input-help"></span>
-            </div>
-            <div className="input-container">
-              <div className="input-row">
-                <span>Auto Sample Ratio:</span>
-                <input
-                  type="checkbox"
-                  checked={glyphPlotSampleAuto}
-                  onChange={(e) => setGlyphPlotSampleAuto(e.target.checked)}
-                />
-              </div>
-              <span className="input-help"></span>
-            </div>
-            { glyphPlotSampleAuto ? null : (
+            <h2>Gradient Plots</h2>
+            <div className="flex-col contained">
+              <h3>Heatmap</h3>
               <div className="input-container">
-              <div className="input-row">
-                <span>Sample Ratio:</span>
-                <input
-                  type="number"
-                  value={glyphPlotSampleRatio}
-                  min={0.0001}
-                  max={1}
-                  step={0.01}
-                  onChange={(e) => setGlyphPlotSampleRatio(e.target.value)}
-                />
+                <div className="input-row">
+                  <span>Heat Map Colour Map:</span>
+                  <select
+                    value={heatMapColourMap}
+                    onChange={(e) => setHeatMapColourMap(e.target.value)}
+                  >
+                    <option value="flare">Flare</option>
+                    <option value="flare_r">Flare Reversed</option>
+                    <option value="mako">Mako</option>
+                    <option value="mako_r">Mako Reversed</option>
+                    <option value="crest">Crest</option>
+                    <option value="crest_r">Crest Reversed</option>
+                  </select>
+                </div>
+                <span className="input-help"></span>
               </div>
-              <span className="input-help"></span>
+              <button
+                disabled={!inputValid}
+                onClick={loadHeatMap}
+              >Update Gradient Heat Map</button>
+            </div>
+            <div className="flex-col contained">
+              <h3>Glyph Plot</h3>
+              <div className="input-container">
+                <div className="input-row">
+                  <span>Glyph Plot Colour Map:</span>
+                  <select
+                    value={glyphPlotColourMap}
+                    onChange={(e) => setGlyphPlotColourMap(e.target.value)}
+                  >
+                    <option value="flare">Flare</option>
+                    <option value="flare_r">Flare Reversed</option>
+                    <option value="mako">Mako</option>
+                    <option value="mako_r">Mako Reversed</option>
+                    <option value="crest">Crest</option>
+                    <option value="crest_r">Crest Reversed</option>
+                  </select>
+                </div>
+                <span className="input-help"></span>
               </div>
-            )}
-            <button onClick={() => loadGlyphPlot(true)}>Update Glyph Plot</button>
+              <div className="input-container">
+                <div className="input-row">
+                  <span>Auto Sample Ratio:</span>
+                  <input
+                    type="checkbox"
+                    checked={glyphPlotSampleAuto}
+                    onChange={(e) => setGlyphPlotSampleAuto(e.target.checked)}
+                  />
+                </div>
+                <span className="input-help">Attempts to determine a reasonable number of glyphs to show. Disable this to manually configure.</span>
+              </div>
+              { glyphPlotSampleAuto ? null : (
+                <div className="input-container">
+                <div className="input-row">
+                  <span>Sample Ratio:</span>
+                  <input
+                    type="number"
+                    value={glyphPlotSampleRatio}
+                    min={0.0001}
+                    max={1}
+                    step={0.01}
+                    onChange={(e) => setGlyphPlotSampleRatio(e.target.value)}
+                  />
+                </div>
+                <span className="input-help"></span>
+                </div>
+              )}
+              <button
+                disabled={!inputValid}
+                onClick={() => loadGlyphPlot(true)}
+              >Update Glyph Plot</button>
+            </div>
           </div>
         </div>
       </div>

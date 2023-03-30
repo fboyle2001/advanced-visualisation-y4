@@ -14,12 +14,21 @@ import graphs
 from hashlib import sha256
 import json
 
+import shutil
+import webbrowser
+import threading
+
 pygmt.config(PROJ_ELLIPSOID="Moon")
+Image.MAX_IMAGE_PIXELS = None
 
 pixels_per_degree = 4
 xds, grid = load_displacement_map(pixels_per_degree)
 app = Flask(__name__)
 cors = CORS(app, resources={r"/*": {"origins": "*"}})
+
+os.makedirs("./cpts", exist_ok=True)
+os.makedirs("./cpts_3d", exist_ok=True)
+os.makedirs("./generated", exist_ok=True)
 
 @app.post("/resolution")
 def change_resolution():
@@ -55,7 +64,6 @@ def generate_2d_map():
     options["__resolution"] = pixels_per_degree
 
     options_hash = sha256(json.dumps(options).encode()).hexdigest()
-    print(options_hash)
 
     region = RegionOptions.load_options(options)
 
@@ -87,56 +95,85 @@ def generate_2d_map():
     
     # print(arr.shape, selected_raw.shape)
 
-    start_time = time.time()
+    cmap = options.get("colour_map")
+
+    # Generate a Zebra Stripe colour map
+    if cmap == "zebra":
+        # Delete old CPTs
+        shutil.rmtree("./cpts")
+        os.makedirs("./cpts")
+
+        split_count = int(options.get("zebra_stripe_count", 8))
+        interval = (max_disp - min_disp) / split_count
+
+        mod_map = ["#ffffff", "#000000"]
+        colours = [mod_map[i % len(mod_map)] for i in range(split_count)]
+        series_str = f"{min_disp}/{max_disp}/{interval}"
+
+        save_name = f"./cpts/{time.time()}.cpt"
+
+        pygmt.makecpt(cmap=",".join(colours), series=series_str, categorical=True, output=save_name)
+
+        cmap = save_name
 
     # Forcefully cause a regeneration of the images
     if force_regen:
         if os.path.isfile(complete_save_loc):
-            os.remove(complete_save_loc)
+            try:
+                os.remove(complete_save_loc)
+            except:
+                pass
         
         if os.path.isfile(no_legend_save_loc):
-            os.remove(no_legend_save_loc)
+            try:
+                os.remove(no_legend_save_loc)
+            except:
+                pass
         
         if os.path.isfile(legend_only_save_loc):
-            os.remove(legend_only_save_loc)
+            try:
+                os.remove(legend_only_save_loc)
+            except:
+                pass
 
     # Generate if the file doesn't already exist
     if not os.path.isfile(complete_save_loc):
-        print("recreate")
         fig = pygmt.Figure()
 
-        shading = None
+        grdimage_options = {
+            "grid": grid,
+            "projection": f"Q30c",
+            "cmap": cmap,
+            "region": region.as_tuple() 
+        }
 
         # Shade the map according to the directional derivative
         if options.get("gradient_shading_enabled"):
-            shading = "+d"
+            grdimage_options["shading"] = "+d"
 
         # Plot the map
-        fig.grdimage(
-            grid=grid,
-            cmap=options.get("colour_map", "haxby"),
-            projection=f"Q30c",
-            region=region.as_tuple(), # type: ignore
-            shading=shading
-        )
+        fig.grdimage(**grdimage_options)
 
         contour_options = options.get("contours", dict())
 
         # If they want to plot the contours
         if contour_options.get("enabled"):
-            contour_params = {
+            contour_params: Dict[str, Any] = {
                 "grid": grid
             }
             
             contour_line_interval = float(contour_options.get("line_interval", 0))
+            contour_line_thickness = float(contour_options.get("line_thickness", 1))
+            contour_line_colour = contour_options.get("line_colour", "black")
             contour_annotation_interval = float(contour_options.get("annotation_interval", 0))
 
             # Set the interval and annotation intervals
             if contour_line_interval > 0:
-                contour_params["interval"] = contour_line_interval # type: ignore
-
+                contour_params["interval"] = contour_line_interval 
+                contour_params["pen"] = f"{contour_line_thickness if contour_line_thickness > 0 else 1}p,{contour_line_colour}"
+                
                 if contour_annotation_interval > 0:
-                    contour_params["annotation"] = contour_annotation_interval # type: ignore
+                    contour_params["annotation"] = contour_annotation_interval 
             
             # Only plot if valid
             if len(contour_params.keys()) > 1:
@@ -157,13 +194,10 @@ def generate_2d_map():
 
         legend_only = with_legend.crop((0, height - 295, width, height))
         legend_only.save(legend_only_save_loc)
-    
-    delta = time.time() - start_time
 
     return {
         "output_location": f"{options_hash}_2d_no_legend.png",
         "legend_location": f"{options_hash}_2d_legend_only.png",
-        "generation_time": delta,
         "selected_raw": selected_grid.tolist(),
         "min_disp": float(min_disp),
         "max_disp": float(max_disp)
@@ -196,22 +230,44 @@ def generate_3d():
     min_disp = selected_grid.min()
     max_disp = selected_grid.max()
 
+    cmap = options.get("colour_map")
+
+    # Generate a Zebra Stripe colour map
+    if cmap == "zebra":
+        # Delete old CPTs
+        shutil.rmtree("./cpts_3d")
+        os.makedirs("./cpts_3d")
+
+        split_count = int(options.get("zebra_stripe_count", 8))
+        interval = (max_disp - min_disp) / split_count
+
+        mod_map = ["#ffffff", "#000000"]
+        colours = [mod_map[i % len(mod_map)] for i in range(split_count)]
+        series_str = f"{min_disp}/{max_disp}/{interval}"
+
+        save_name = f"./cpts_3d/{time.time()}.cpt"
+        pygmt.makecpt(cmap=",".join(colours), series=series_str, categorical=True, output=save_name)
+        cmap = save_name
+
     # Forcefully cause a regeneration of the images
     if force_regen:
         if os.path.isfile(perspective_save_loc):
-            os.remove(perspective_save_loc)
+            try:
+                os.remove(perspective_save_loc)
+            except:
+                pass
 
     if not os.path.isfile(perspective_save_loc):
         fig = pygmt.Figure()
 
         grdview_params = {
             "grid": grid,
-            "region": region.as_tuple(), # type: ignore
+            "region": (*region.as_tuple(), min_disp - abs(min_disp * 0.1), max_disp + abs(max_disp * 0.1)), # type: ignore
             "frame": ["a5f1g5", "za5f1g5"],
             "projection": "Q30c",
-            "zscale": "0.5c",
+            "zscale": "2.5c",
             "surftype": "s",
-            "cmap": options.get("colour_map", "haxby"),
+            "cmap": cmap,
             "perspective": [options.get("azimuth", 135), options.get("elevation", 30)]
         }
 
@@ -219,9 +275,12 @@ def generate_3d():
 
         if contour_options.get("enabled"):
             contour_line_interval = float(contour_options.get("line_interval", 0))
+            
+            contour_line_thickness = float(contour_options.get("line_thickness", 1))
+            contour_line_colour = contour_options.get("line_colour", "black")
 
             if contour_line_interval > 0:
-                grdview_params["contourpen"] = "1p,blue"
+                grdview_params["contourpen"] = f"{contour_line_thickness if contour_line_thickness > 0 else 1}p,{contour_line_colour}"
 
         fig.grdview(**grdview_params)
         fig.colorbar(frame=["x+ldisplacement", "y+lkm"])
@@ -260,13 +319,16 @@ def generate_glyphs():
     # Forcefully cause a regeneration of the images
     if force_regen:
         if os.path.isfile(glyph_save_loc):
-            os.remove(glyph_save_loc)
+            try:
+                os.remove(glyph_save_loc)
+            except:
+                pass
 
     if not os.path.isfile(glyph_save_loc):
         # Calculate gradients and generate the glyph plot
         npg = np.array(np.gradient(selected_grid))
         sample_ratio = options.get("sample_ratio", "auto")
-        graphs.generate_gradient_glyphs(npg, sample_ratio, options.get("colour_map", "rocket"), region, glyph_save_loc)
+        graphs.generate_gradient_glyphs(npg, pixels_per_degree, sample_ratio, options.get("colour_map", "rocket"), region, glyph_save_loc)
 
     return {
         "file_loc": f"{options_hash}_glyphs.png"
@@ -299,7 +361,10 @@ def generate_heatmap():
     # Forcefully cause a regeneration of the images
     if force_regen:
         if os.path.isfile(heatmap_save_loc):
-            os.remove(heatmap_save_loc)
+            try:
+                os.remove(heatmap_save_loc)
+            except:
+                pass
 
     if not os.path.isfile(heatmap_save_loc):
         # Calculate gradients and generate the magnitude heatmap
@@ -313,5 +378,9 @@ def generate_heatmap():
 @app.get("/generated/<file_loc>")
 def fetch_generated_file(file_loc):
     file_path = f"./generated/{file_loc}"
-    print(file_path)
     return send_file(file_path, "image/png")
+
+if __name__ == "__main__":
+    real_path = f"file://{os.path.realpath('./gui/index.html')}"
+    threading.Timer(3, lambda: webbrowser.open(real_path, new=2)).start()
+    app.run()

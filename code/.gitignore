@@ -161,3 +161,6 @@ cython_debug/
 
 generated
 temp_output
+cpts
+cpts_3d
+gui

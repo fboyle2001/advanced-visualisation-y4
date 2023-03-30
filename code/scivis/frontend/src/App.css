@@ -44,6 +44,8 @@ Map Display
   justify-content: space-between;
   height: 100%;
   width: 100%;
+  /* margin-left: -2.5%;
+  margin-top: -1.5%; */
 }
 
 .arrow-horizontal-div {
@@ -81,8 +83,8 @@ input, select {
   max-height: 80vh;
 }
 
-.width-100 {
-  width: 100%
+.map-container-3d {
+  padding: 4rem;
 }
 
 .width-75 {
@@ -91,7 +93,6 @@ input, select {
 
 .width-25 {
   width: 25%;
-  border-left: 0.2rem black solid;
 }
 
 .width-50 {
@@ -146,6 +147,18 @@ input, select {
   object-fit: cover;
 }
 
+.options-sticky {
+  position: sticky;
+  top: 0;
+}
+
+.render-all-button {
+  font-size: x-large;
+  padding: 0.4rem;
+  border: 0.2rem darkgreen solid;
+  font-weight: 700;
+}
+
 .contained {
   border: 1px solid black; 
   padding: 0.3rem;
@@ -155,6 +168,12 @@ input, select {
 
 .options-panel, .plots-panel {
   padding: 0.3rem;
+}
+
+.options-panel {
+  border-left: 0.2rem black solid;
+  position: sticky;
+  top: 0;
 }
 
 .plot-panel {
@@ -171,8 +190,8 @@ input, select {
 }
 
 .segment-panel {
-  padding-left: 0.25rem;
-  padding-right: 0.25rem;
+  padding: 0.5rem;
+  box-sizing: border-box;
 }
 
 .segment-panel:last-of-type {
@@ -185,4 +204,26 @@ input, select {
 
 .input-row > span {
   margin-right: 0.2rem;
+}
+
+.arrow-button {
+  width: auto;
+  align-self: center;
+  font-size: x-large;
+  padding: 0.2rem
+}
+
+.loading-div {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 80vh;
+  justify-content: center;
+  align-items: center;
+  font-style: italic;
+}
+
+.loading-title {
+  font-size: x-large;
+  margin-bottom: 1rem;
 }

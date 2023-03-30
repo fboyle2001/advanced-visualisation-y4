@@ -12,11 +12,6 @@ export const TwoDimensionalImagePanel = (props) => {
 
   const overlayRef = useRef();
 
-  const [nextRegionMinX, setNextRegionMinX] = useState(regionMinX);
-  const [nextRegionMaxX, setNextRegionMaxX] = useState(regionMaxX);
-  const [nextRegionMinY, setNextRegionMinY] = useState(regionMinY);
-  const [nextRegionMaxY, setNextRegionMaxY] = useState(regionMaxY);
-
   const [overlayCoords, setOverlayCoords] = useState([null, null, null, null]);
   const [currentDisplacement, setCurrentDisplacement] = useState(null);
   const [currentCoordinates, setCurrentCoordinates] = useState([null, null]);
@@ -52,6 +47,7 @@ export const TwoDimensionalImagePanel = (props) => {
     const pixelX = clamp(Math.ceil(selectedArray.length * realClickedX / boundingWidth) - 1, 0, selectedArray.length - 1);
 
     const displacement = selectedArray[pixelX];
+
     setCurrentDisplacement(displacement);
     setCurrentCoordinates([
       coordRounding(regionMinX + ((regionMaxX - regionMinX) * realClickedX) / boundingWidth, pixelsPerDegree, regionMinX, regionMaxX),
@@ -95,12 +91,6 @@ export const TwoDimensionalImagePanel = (props) => {
     const rightR = calculateRegionXCoord(boundingWidth - right);
 
     setOverlayCoords([top, left, bottom, right]);
-
-    setNextRegionMinX(leftR);
-    setNextRegionMaxX(rightR);
-    setNextRegionMinY(bottomR);
-    setNextRegionMaxY(topR);
-
     updateSelectedRegion(leftR, rightR, bottomR, topR);
   }, [cornerOne, cornerTwo, regionMinX, regionMaxX, regionMinY, regionMaxY, updateSelectedRegion]);
 

@@ -1,7 +1,6 @@
 import numpy as np
 import math
 import seaborn as sns
-import random
 
 from matplotlib.figure import Figure
 from utils import RegionOptions
@@ -9,7 +8,7 @@ from utils import RegionOptions
 # Override matplotlib default styles with better Seaborn ones
 sns.set_theme()
 
-def generate_gradient_glyphs(region_np_gradients, sample_ratio, cmap_name, region: RegionOptions, file_location):
+def generate_gradient_glyphs(region_np_gradients, ppd, sample_ratio, cmap_name, region: RegionOptions, file_location):
     npg = region_np_gradients.copy()
 
     # Flip the axes order so that we have them the correct way up for displaying
@@ -19,8 +18,8 @@ def generate_gradient_glyphs(region_np_gradients, sample_ratio, cmap_name, regio
     npg[1, :, :] = npg[1, ::-1, :]
 
     if sample_ratio == "auto":
-        # TODO: Find a better way for this
-        sample_ratio = random.uniform(0, 1)
+        calculated_sr = (0.02 + math.exp(-0.00055 * (npg.shape[1] * npg.shape[2] - 300))) * (16 / ppd) ** 2
+        sample_ratio = min(1, calculated_sr)
     else:
         sample_ratio = float(sample_ratio)
     
@@ -60,7 +59,7 @@ def generate_gradient_glyphs(region_np_gradients, sample_ratio, cmap_name, regio
     # Otherwise major issue with threading
     # See https://matplotlib.org/stable/gallery/user_interfaces/web_application_server_sgskip.html
     fig = Figure()
-    ax = fig.add_subplot(111)
+    ax = fig.add_subplot(111) # type: ignore
 
     # print(x_range.shape, y_range.shape)
     # print(dx.shape, dy.shape)
@@ -77,20 +76,18 @@ def generate_gradient_glyphs(region_np_gradients, sample_ratio, cmap_name, regio
     quiver = ax.quiver(x_range, y_range, dx, dy, color_array, angles="xy", cmap=cmap)
     fig.colorbar(quiver, label="Magnitude")
 
-    print(npg.shape)
     _, y_tick_max, x_tick_max = npg.shape
 
     # Process x axis first
     x_length = region.max_x - region.min_x
-    x_tick_count = max(2, x_length // 10)
+    x_tick_count = min(12, max(2, x_length // 10))
     x_tick_step = x_tick_max / x_tick_count
     new_x_ticks = x_tick_step * np.arange(x_tick_count + 1)
-    print(new_x_ticks)
     ax.set_xticks(new_x_ticks, minor=False, labels=[region.min_x + round(i * x_length / x_tick_count) for i in range(x_tick_count + 1)], rotation=0)
 
     # Process y axis
     y_length = region.max_y - region.min_y
-    y_tick_count = max(2, y_length // 10)
+    y_tick_count = min(12, max(2, y_length // 10))
     y_tick_step = y_tick_max / y_tick_count
     new_y_ticks = y_tick_step * np.arange(y_tick_count + 1)
     ax.set_yticks(new_y_ticks, minor=False, labels=[region.min_y + round(i * y_length / y_tick_count) for i in range(y_tick_count + 1)], rotation=0)
@@ -98,6 +95,10 @@ def generate_gradient_glyphs(region_np_gradients, sample_ratio, cmap_name, regio
     ax.tick_params(axis="both", reset=True, which="major", direction="out", right=False, top=False)
     ax.set(xlabel="Latitude", ylabel="Longitude")
 
+    ax.patch.set_edgecolor('black')  
+    ax.patch.set_linewidth(2)  
+
+    ax.set_facecolor("white")
     ax.set_aspect("equal")
     # ax.axis("off")
     ax.grid(False)
@@ -119,7 +120,7 @@ def generate_gradient_magnitude_heatmap(region_np_gradients, cmap_name, region: 
     npg = np.sqrt(np.square(npg).sum(axis=2))
 
     fig = Figure()
-    ax = fig.add_subplot(111)
+    ax = fig.add_subplot(111) # type: ignore
     cmap = sns.color_palette(cmap_name, as_cmap=True)
     sns.heatmap(npg, ax=ax, cmap=cmap, cbar_kws={"label": "Magnitude"})
     ax.invert_yaxis()
@@ -128,14 +129,14 @@ def generate_gradient_magnitude_heatmap(region_np_gradients, cmap_name, region: 
 
     # Process x axis first
     x_length = region.max_x - region.min_x
-    x_tick_count = max(2, x_length // 10)
+    x_tick_count = min(12, max(2, x_length // 10))
     x_tick_step = x_tick_max / x_tick_count
     new_x_ticks = x_tick_step * np.arange(x_tick_count + 1)
     ax.set_xticks(new_x_ticks, minor=False, labels=[region.min_x + round(i * x_length / x_tick_count) for i in range(x_tick_count + 1)], rotation=0)
 
     # Process y axis
     y_length = region.max_y - region.min_y
-    y_tick_count = max(2, y_length // 10)
+    y_tick_count = min(12, max(2, y_length // 10))
     y_tick_step = y_tick_max / y_tick_count
     new_y_ticks = y_tick_step * np.arange(y_tick_count + 1)
     ax.set_yticks(new_y_ticks, minor=False, labels=[region.min_y + round(i * y_length / y_tick_count) for i in range(y_tick_count + 1)], rotation=0)

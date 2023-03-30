@@ -3,12 +3,11 @@ import React from 'react'
 export const ThreeDimensionalImagePanel = (props) => {
   const { 
     imageLocation,
-    currentElevation, currentAzimuth,
+    currentElevation,
     fastUpdateElevation, fastUpdateAzimuth
   } = props;
 
   const updateElevation = (degrees) => {
-    console.log({currentElevation})
     fastUpdateElevation(degrees);
   }
 
@@ -23,33 +22,44 @@ export const ThreeDimensionalImagePanel = (props) => {
           "position": "relative",
           "display": "inline-block",
           "left": "50%",
-          "transform": "translateX(-50%)",
-          "padding": "20px"
+          "transform": "translateX(-50%)"
         }}
       >
-        <img 
-          src={`http://localhost:5000/generated/${imageLocation}`}
-          className="map-display"
-          alt="3D Displacement Map"
-        />
-        <div className="map-overlay arrow-buffer-div">
-          <div className="arrow-main-div">
-            <button
-              disabled={currentElevation >= 80}
-              onClick={() => updateElevation(10)}
-            >Top</button>
-            <div className="arrow-horizontal-div">
+        <div className="map-container-3d">
+          <img 
+            src={`http://localhost:5000/generated/${imageLocation}`}
+            className="map-display"
+            alt="3D Displacement Map"
+          />
+        </div>
+        <div>
+          <div className="map-overlay">
+            <div className="arrow-main-div">
               <button
-                onClick={() => updateAzimuth(15)}
-              >Left</button>
-              <button 
-                onClick={() => updateAzimuth(-15)}
-              >Right</button>
+                disabled={currentElevation >= 80}
+                onClick={() => updateElevation(10)}
+                title="Increase camera elevation by 10°"
+                className="arrow-button"
+              >↑</button>
+              <div className="arrow-horizontal-div">
+                <button
+                  onClick={() => updateAzimuth(15)}
+                  title="Rotate camera left by 15°"
+                  className="arrow-button"
+                >←</button>
+                <button 
+                  onClick={() => updateAzimuth(-15)}
+                  title="Rotate camera right by 15°"
+                  className="arrow-button"
+                >→</button>
+              </div>
+              <button
+                disabled={currentElevation <= 10}
+                onClick={() => updateElevation(-10)}
+                title="Decrease camera elevation by 10°"
+                className="arrow-button"
+              >↓</button>
             </div>
-            <button 
-              disabled={currentElevation <= 10}
-              onClick={() => updateElevation(-10)}
-            >Bottom</button>
           </div>
         </div>
       </div>
