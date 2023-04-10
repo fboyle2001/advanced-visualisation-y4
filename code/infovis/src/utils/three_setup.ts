@@ -33,16 +33,6 @@ camera.position.z = 0;
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 
-// Load the skybox
-const skyboxLoader = new THREE.TextureLoader();
-const texture = skyboxLoader.load(
-    "/textures/skybox.png", () => {
-        const skybox = new THREE.WebGLCubeRenderTarget(texture.image.height);
-        skybox.fromEquirectangularTexture(renderer, texture);
-        scene.background = skybox.texture;
-    }
-);
-
 // Respond to resizing
 window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;

@@ -1,0 +1,10 @@
+Info Vis:
+* three.js with a moon with displacement and actual on it
+    -> could embed in a page so we can have other stuff on it too
+* information about the moon and why we want to go back
+* what sci vis stuff to include, some 3d renders?
+* NASA time line for space exploration
+* organisational structure?
+* overlay some stuff on the map of the moon?
+* map showing where we have landed on the moon before
+--> interactive timeline
