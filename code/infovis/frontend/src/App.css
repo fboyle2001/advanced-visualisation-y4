@@ -186,8 +186,11 @@ h1 {
 }
 
 .responsive-image {
-    max-width: 100%;
+    width: auto;
     height: auto;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
 }
 
 .img-container {
@@ -207,7 +210,21 @@ h3 {
     font-size: 1.5em;
 }
 
+.inner-border {
+    box-sizing: border-box;
+}
+
 .treemap-cell {
     border: 1px darkred solid;
     padding: 0.2rem;
+    box-sizing: border-box;
+    overflow: hidden;
+    border-collapse: collapse;
+    margin-right: 0.2rem;
+    margin-bottom: 0.2rem;
+    font-weight: 600;
+}
+
+.spaced {
+    justify-content: space-around;
 }

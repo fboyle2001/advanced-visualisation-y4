@@ -225,7 +225,7 @@ export const LandmarkMap = () => {
     <>
       <div className="height-100 information-box">
         <h3>Timeline</h3>
-        <span className="information-box-normal">Click an event on the timeline below to find out more about the mission and where it landed!</span>
+        <span className="information-box-normal margin-b">Click an event on the timeline below to find out more about the mission and where it landed!</span>
         { displayTimeline() }
       </div>
       <div className="flex-col width-100">

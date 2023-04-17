@@ -1,5 +1,5 @@
 import React, { useLayoutEffect, useRef, useState } from 'react'
-import { HSVtoRGB, RGBtoHSV, RGBtoHex } from '../utils';
+import { hslToRgb, rgbToHsl, RGBtoHex } from '../utils';
 
 const recursiveSum = (obj) => {
   let sum = 0;
@@ -33,19 +33,22 @@ const normaliseAndSort = (arr) => {
   return sortedParentWidths;
 }
 
+const formatValue = (value) => {
+  const realValue = value * 10 ** 6;
+  return `$${realValue.toLocaleString()}`;
+}
+
 export const TreemapCell = (props) => {
   const selfRef = useRef();
   const [width, setWidth] = useState(0);
   const [height, setHeight] = useState(0);
 
-  const createInnerContainer = (remainingWidth, remainingHeight, remainingEntries, dim) => {
+  const createInnerContainer = (remainingWidth, remainingHeight, remainingEntries, dim, labelledChildren, deeper) => {
     if(Object.keys(remainingEntries).length === 0 || remainingHeight === 0 || remainingWidth === 0) {
       return null;
     }
 
     let sum = 0;
-
-    console.log(JSON.stringify({remainingEntries}))
 
     for(const entry of remainingEntries) {
       sum += entry[Object.keys(entry)[0]];
@@ -57,20 +60,14 @@ export const TreemapCell = (props) => {
     for(const entry of remainingEntries) {
       const k = Object.keys(entry)[0];
       const v = remainingEntries[i][k];
-      console.log({k ,v})
-      norm.push({[k]: v/sum});
+      norm.push({[k]: v / sum});
       i++;
     }
 
-    console.log(JSON.stringify({norm}))
-    
-
-    console.log({sum})
-
-    const currentHSV = RGBtoHSV(...props.colour);
-    const nextHSV = [currentHSV.h, currentHSV.s, currentHSV.v * 0.8];
-    const nextRGB = HSVtoRGB(...nextHSV);
-    const nextRGBArray = [nextRGB.r, nextRGB.g, nextRGB.b];
+    const currentHSL = rgbToHsl(...props.colour);
+    const nextHSL = [currentHSL[0], currentHSL[1], currentHSL[2] * 0.7];
+    console.log({n: props.name, nextHSL})
+    const nextRGB = hslToRgb(...nextHSL);
 
     let largest = Math.max(remainingWidth, remainingHeight);
     const scalar = largest;
@@ -78,43 +75,44 @@ export const TreemapCell = (props) => {
     const widthFocus = remainingWidth > remainingHeight;
 
     let children = [];
-    console.log({largest, smallest})
-
-    console.log(JSON.stringify({remainingEntries}))
-    console.log(JSON.stringify({norm}))
 
     let remaining = 100;
 
     while(largest > smallest && Object.keys(norm).length > 0) {
       const entry = norm[0];
-      console.log({entry})
       const entryKey = Object.keys(entry)[0];
       const entryValue = entry[entryKey];
-      console.log({entry, entryKey, v: entry[entryKey]})
       largest -= entryValue * scalar;
-
-      let style = {};
-
       remaining -= entryValue * 100;
+
+      let data = {};
+      let totalValue = 0;
+
+      if(Object.keys(deeper).includes(entryKey)) {
+        data = deeper[entryKey];
+        totalValue = labelledChildren[entryKey];
+      } else {
+        data.value = labelledChildren[entryKey]
+      }
+
+      console.log({c: labelledChildren[entryKey]})
 
       children.push(
         <TreemapCell
           name={entryKey}
           scale={entryValue * 100}
           direction={widthFocus ? "horizontal" : "vertical"}
-          totalValue={0}
-          data={{value: 0}}
-          colour={nextRGBArray}
+          totalValue={totalValue}
+          data={data}
+          colour={nextRGB}
+          whiteFont={nextHSL[2] < 0.6}
         />
       )
-      console.log({largest, smallest})
+
       norm.shift();
     }
 
-    console.log({remaining})
-
-    children.push(createInnerContainer(widthFocus ? largest : smallest, widthFocus ? smallest : largest, norm, remaining));
-    const ratio = 100//100 * (scalar - largest) / scalar;
+    children.push(createInnerContainer(widthFocus ? largest : smallest, widthFocus ? smallest : largest, norm, remaining, labelledChildren, deeper));
 
     return (
       <div className={widthFocus ? "flex-row" : "flex-col"} style={{width: !widthFocus ? `${dim}%` : "100%", height: !widthFocus ? "100%" : `${dim}%`}}>
@@ -131,7 +129,8 @@ export const TreemapCell = (props) => {
   }, []);
 
   const style = {
-    backgroundColor: RGBtoHex(...props.colour)
+    backgroundColor: RGBtoHex(...props.colour),
+    color: props.whiteFont ? "white" : "black"
   }
 
   // Orient the parent
@@ -148,25 +147,38 @@ export const TreemapCell = (props) => {
       <div
         className="treemap-cell"
         style={style}
-      >(END) {props.name}: {props.data.value}</div>
+        title={`${props.name}: ${formatValue(props.data.value)}`}
+      >
+        {props.name}: {formatValue(props.data.value)}
+      </div>
     )
   }
 
-  const sortedParentWidths = normaliseAndSort(props.data.children)  
-  console.log({sortedParentWidths})
+  const { children } = props.data;
+  const sortedParentWidths = normaliseAndSort(children);
 
-  for(const k in sortedParentWidths) {
-    console.log({[k]: sortedParentWidths[k]})
-  }
+  let deeper = {};
+
+  const labelledChildren = children.reduce((acc, v) => {
+    if(Object.keys(v).includes("value")) {
+      acc[v.name] = v.value;
+    } else {
+      acc[v.name] = recursiveSum(v);
+      deeper[v.name] = v;
+    }
+    return acc;
+  }, {})
 
   return (
     <div
       className="treemap-cell"
       style={style}
       ref={selfRef}
+      title={`${props.name}: ${formatValue(props.totalValue)}`}
     >
-      <span>N: {props.name}, W: {width}, H: {height}, T: {props.totalValue} </span>
-      { createInnerContainer(width, height, sortedParentWidths, 100) }
+      <span className="information-box-normal">{props.name}: {formatValue(props.totalValue)}</span>
+      { createInnerContainer(width, height, sortedParentWidths, 100, labelledChildren, deeper) }
+      {/* <span>N: {props.name}, W: {width}, H: {height}, T: {props.totalValue} </span> */}
     </div>
   )
 }

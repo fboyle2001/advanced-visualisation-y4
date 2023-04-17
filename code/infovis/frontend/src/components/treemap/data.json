@@ -4,11 +4,33 @@
         "children": [
             {
                 "name": "Development",
-                "value": 4739.9
+                "children": [
+                    {
+                        "name": "Orion Program",
+                        "value": 1320.3
+                    },
+                    {
+                        "name": "Space Launch System",
+                        "value": 2600.0
+                    },
+                    {
+                        "name": "Exploration Ground Systems",
+                        "value": 799.2
+                    }
+                ]
             },
             {
                 "name": "Artermis Campaign",
-                "value": 2600.3
+                "children": [
+                    {
+                        "name": "Human Landing System",
+                        "value": 1485.6
+                    },
+                    {
+                        "name": "Program",
+                        "value": 1114.7
+                    }
+                ]
             },
             {
                 "name": "Other",
@@ -23,6 +45,26 @@
     {
         "name": "Space Technology",
         "value": 1200
+    },
+    {
+        "name": "Aeronautics",
+        "value": 935
+    },
+    {
+        "name": "STEM Engagement",
+        "value": 143.5
+    },
+    {
+        "name": "Mission Services",
+        "value": 3129.5
+    },
+    {
+        "name": "Compliance",
+        "value": 414.3
+    },
+    {
+        "name": "Inspector General",
+        "value": 47.6
     },
     {
         "name": "Science",

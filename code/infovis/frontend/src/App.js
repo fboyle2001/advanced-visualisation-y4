@@ -1,4 +1,6 @@
 import './App.css';
+import { Benefit } from './components/benefits/Benefit';
+import { BenefitList } from './components/benefits/BenefitList';
 import { LandmarkMap } from './components/landmark/LandmarkMap';
 import { Treemap } from './components/treemap/Treemap';
 
@@ -17,9 +19,12 @@ function App() {
       </div>
       <div className="flex-col outline-border information-box">
         <h2>The Benefits</h2>
+        <span className="information-box-normal margin-b">The Apollo Program required huge amounts of research and development. Many of the breakthroughs encouraged by the program are used daily by many people.</span>
+        <BenefitList />
       </div>
       <div className="flex-col outline-border information-box">
         <h2>The Cost of Space Travel</h2>
+        <span className="information-box-normal margin-b">Leaving Earth isn't cheap, during 2023 NASA has a budget of $25,383,700,000. Hover each section below to see the exact value that is being spent!</span>
         <Treemap />
       </div>
       <div className="flex-col outline-border"> 
