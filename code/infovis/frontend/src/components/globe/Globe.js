@@ -3,10 +3,24 @@ import * as THREE from "three";
 import { TIFFLoader } from 'three/examples/jsm/loaders/TIFFLoader';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
-export const Globe = () => {
+export const Globe = (props) => {
   const mount = useRef();
 
   const [threeLoaded, setThreeLoaded] = useState(false);
+  const [renderer, setRenderer] = useState(null);
+  const [camera, setCamera] = useState(null);
+
+  const computeSphericalCoord = (lat, lon, radius, alt) => {
+    const theta = Math.PI * (90 + lat) / 180;
+    const phi = Math.PI * (90 - lon) / 180;
+    const rho = (radius + alt);
+    
+    const x = rho * Math.sin(phi) * Math.sin(theta);
+    const y = rho * Math.cos(phi);
+    const z = rho * Math.sin(phi) * Math.cos(theta);
+
+    return [x, y, z];
+  }
 
   useEffect(() => {
     if(threeLoaded) {
@@ -48,35 +62,23 @@ export const Globe = () => {
                 new THREE.SphereGeometry(radius, 1000, 1000),
                 material
             )
+
+            const pointGeom = new THREE.BoxGeometry(0.1, 0.5, 0.1);
+
+            props.landmarks.forEach(landmark => {
+              const [x, y, z] = computeSphericalCoord(landmark.lat, landmark.lon, radius, 0.3);
+              const point = new THREE.Mesh(pointGeom, new THREE.MeshBasicMaterial({ color: 0x9900AA }));
+              point.position.set(x, y, z);
+              point.lookAt(new THREE.Vector3().copy(point.position).multiplyScalar(2));
+              point.rotateX(Math.PI / 2);
+              moon.add(point);
+            });
         
             scene.add(moon);
         });
     });
 
-    const pointGeom = new THREE.BoxGeometry(0.2, 0.2, 0.2);
-    // blue
-    const point = new THREE.Mesh(pointGeom, new THREE.MeshBasicMaterial({ color: 0x444fff }));
-
-    point.position.set(radius + 0.3, 0, 0)
-    scene.add(point);
-
     
-    const lon = radius * 90 / 90;
-    const lonAngle = Math.PI * lon / (2 * radius);
-
-    // purple
-    const bPoint = new THREE.Mesh(pointGeom, new THREE.MeshBasicMaterial({ color: 0x9900AA }));
-    // y = lon
-    // z = lat
-    bPoint.position.set(radius * Math.cos(lonAngle) + 0.3, radius * Math.sin(lonAngle), 0)
-    scene.add(bPoint);
-
-    // y = lon
-    // z = lat
-    // green
-    const cPoint = new THREE.Mesh(pointGeom, new THREE.MeshBasicMaterial({ color: 0x00FF88 }));
-    cPoint.position.set(0, 0, 0)
-    scene.add(cPoint);
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -90,9 +92,18 @@ export const Globe = () => {
       controls.update()
       renderer.render(scene, camera);
     };
+
+    setRenderer(renderer);
+    setCamera(camera);
     
     animate();
-  }, [mount, threeLoaded])
+  }, [mount, threeLoaded]);
+
+  useEffect(() => {
+    return () => {
+      // mount.current.removeChild(mount.current.children[0]);
+    }
+  }, [])
 
   return (
     <div ref={mount} style={{

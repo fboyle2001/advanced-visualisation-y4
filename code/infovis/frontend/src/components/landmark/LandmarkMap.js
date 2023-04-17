@@ -15,8 +15,8 @@ const landmarks = [
   {
     "name": "90-45",
     "significance": "N/A",
-    "lat": 0,
-    "lon": 65,
+    "lat": 45,
+    "lon": 45,
     "short_id": "sot",
     "description": "N/A"
   },
@@ -125,7 +125,9 @@ export const LandmarkMap = () => {
 
   const renderCloseUp = () => {
     if(selectedMapType === "globe") {
-      return <Globe />;
+      return <Globe 
+        landmarks={landmarks}
+      />;
     }
 
     return (
