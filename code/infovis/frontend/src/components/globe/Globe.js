@@ -3,15 +3,17 @@ import * as THREE from "three";
 import { TIFFLoader } from 'three/examples/jsm/loaders/TIFFLoader';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
+const RADIUS = 17.134;
+
 export const Globe = forwardRef((props, ref) => {
   const mount = useRef();
 
-  const [threeLoaded, setThreeLoaded] = useState(false);
-  const [renderer, setRenderer] = useState(null);
   const [camera, setCamera] = useState(null);
   const [controls, setControls] = useState(null);
+  const [moonSurface, setMoonSurface] = useState(null); 
 
   const [landmarkVectors, setLandmarkVectors] = useState({});
+  const [displacement, setDisplacement] = useState(3);
 
   useImperativeHandle(ref, () => ({
     rotateToLandmark(name) {
@@ -32,27 +34,19 @@ export const Globe = forwardRef((props, ref) => {
   }
 
   useEffect(() => {
-    if(threeLoaded) {
-      return;
-    }
-
-    setThreeLoaded(true);
-
-    const { clientWidth: width, clientHeight: height } = mount.current;
+    const { clientWidth: width } = mount.current;
 
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera( 75, width / height, 0.1, 1000 );
+    const camera = new THREE.PerspectiveCamera( 75, width / width, 0.1, 1000 );
     const renderer = new THREE.WebGLRenderer();
 
     const light = new THREE.AmbientLight(0xFFFFFF, 1);
     scene.add(light);
 
-    renderer.setSize(width, height);
+    renderer.setSize(width, width);
     mount.current.appendChild( renderer.domElement );
 
     const loader = new TIFFLoader();
-
-    const radius = 17.374;
 
     let newLVs = {};
 
@@ -63,21 +57,19 @@ export const Globe = forwardRef((props, ref) => {
                 displacementMap: displacementTexture,
                 displacementScale: 3,
                 flatShading: true
-                
-                // bumpMap: displacementTexture,
-                // bumpScale: 1
-                // bumpScale: 100
             });
+
+            setMoonSurface(material);
         
             const moon = new THREE.Mesh(
-                new THREE.SphereGeometry(radius, 1000, 1000),
+                new THREE.SphereGeometry(RADIUS, 1000, 1000),
                 material
             )
 
             const pointGeom = new THREE.BoxGeometry(0.1, 3, 0.1);
 
             props.landmarks.forEach(landmark => {
-              const [x, y, z] = computeSphericalCoord(landmark.lat, landmark.lon, radius, 0.3);
+              const [x, y, z] = computeSphericalCoord(landmark.lat, landmark.lon, RADIUS, 0.3);
               const point = new THREE.Mesh(pointGeom, new THREE.MeshBasicMaterial({ color: 0x39f742 }));
               point.position.set(x, y, z);
               point.lookAt(new THREE.Vector3().copy(point.position).multiplyScalar(2));
@@ -104,42 +96,61 @@ export const Globe = forwardRef((props, ref) => {
       renderer.render(scene, camera);
     };
 
-    setRenderer(renderer);
     setCamera(camera);
     setControls(controls);
     setLandmarkVectors(newLVs);
     
     animate();
-  }, [mount, threeLoaded]);
 
-  useEffect(() => {
     return () => {
-      // mount.current.removeChild(mount.current.children[0]);
+      renderer.forceContextLoss();
+      renderer.context = null;
+      renderer.domElement = null;
     }
-  }, [])
+  }, []);
 
   const _rotateToLandmark = (name) => {
-    console.log("Rot")
-    console.log({camera})
+    if(!camera || !controls) {
+      return;
+    }
 
     const [x, y, z] = landmarkVectors[name];
-    camera.position.set(x, y, z).normalize().multiplyScalar(17 + 8)
-
-    // camera.position.set(10, 10, 10);
+    camera.position.set(x, y, z).normalize().multiplyScalar(RADIUS + 8);
     controls.update();
+  }
+
+  const updateDisplacement = (value) => {
+    if(!moonSurface) {
+      return;
+    }
+
+    setDisplacement(value);
+    moonSurface.displacementScale = value;
   }
 
   return (
     <div className="map-container" style={{
       width: "100%",
-      height: "100%"
+      height: "100%",
+      minWidth: "100%",
+      minHeight: "100%"
     }}>
       <div ref={mount} style={{
         width: "100%",
         height: "100%"
       }}/>
-      <div className='map-overlay'>
-      <button onClick={_rotateToLandmark}>Focus</button>
+      <div className="globe-overlay">
+        <div className="flex-row">
+          <span>Displacement:</span>
+          <input
+            type="range"
+            min={0}
+            max={5}
+            value={displacement}
+            step={0.5}
+            onChange={(e) => updateDisplacement(e.target.value)}
+          />
+        </div>
       </div>
     </div>
   )

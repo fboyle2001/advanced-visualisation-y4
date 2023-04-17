@@ -1,0 +1,52 @@
+[
+    {
+        "name": "Exploration",
+        "children": [
+            {
+                "name": "Development",
+                "value": 4739.9
+            },
+            {
+                "name": "Artermis Campaign",
+                "value": 2600.3
+            },
+            {
+                "name": "Other",
+                "value": 130.7
+            }
+        ]
+    },
+    {
+        "name": "Space Operations",
+        "value": 4250
+    },
+    {
+        "name": "Space Technology",
+        "value": 1200
+    },
+    {
+        "name": "Science",
+        "children": [
+            {
+                "name": "Earth Science",
+                "value": 2195
+            },
+            {
+                "name": "Planetary Science",
+                "value": 3200
+            },
+            {
+                "name": "Astrophysics",
+                "value": 1510
+            },
+            {
+                "name": "Heliophysics",
+                "value": 805
+            },
+            {
+                "name": "Biological and Physical Sciences",
+                "value": 85
+            }
+        ]
+    }
+]

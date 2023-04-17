@@ -5,68 +5,64 @@ import { Globe } from '../globe/Globe';
 
 const landmarks = [
   {
-    "name": "0-0",
-    "significance": "N/A",
-    "lat": 0,
-    "lon": 0,
-    "short_id": "sot",
-    "description": "N/A"
-  },
-  {
-    "name": "90-45",
-    "significance": "N/A",
-    "lat": 45,
-    "lon": 45,
-    "short_id": "sot",
-    "description": "N/A"
-  },
-  {
     "name": "Tranquillity Base",
-    "significance": "Apollo 11 Landing Site",
+    "significance": "Apollo 11",
+    "astronauts": "Neil Armstrong, Michael Collins, Buzz Aldrin",
+    "date": new Date("1969-07-20"),
     "lat": 23.433333,
     "lon": 0.6875,
     "short_id": "sot",
-    "description": "The landing site"
+    "description": "The first manned mission to the Moon was achieved by NASA in 1969 and took just over 8 days to complete. The astronauts collected samples of the lunar surface and NASA probed the viability of landing humans on other objects in the Solar System."
   },
   {
     "name": "Ocean of Storms",
-    "significance": "Apollo 12 Landing Site",
+    "significance": "Apollo 12",
+    "astronauts": "Charles 'Pete' Conrad, Richard Gordon, Alan Bean",
+    "date": new Date("1969-11-19"),
     "lat": -57.4,
     "lon": 18.4,
     "short_id": "oos",
-    "description": ""
+    "description": "The second manned mission to the Moon was another success. The astronauts spent over a day on the surface of the Moon."
   },
   {
     "name": "Fra Mauro",
-    "significance": "Apollo 14 Landing Site",
+    "significance": "Apollo 14",
+    "astronauts": "Alan Shepard, Stuart Roosa, Edgar Mitchell",
+    "date": new Date("1971-02-04"),
     "lat": -17.47136,
     "lon": -3.6453,
     "short_id": "fra",
-    "description": ""
+    "description": "Following the failure of Apollo 13 - a stark reminder of the difficulties of space travel - Apollo 14 was the first mission to land in the lunar highlands."
   },
   {
     "name": "Hadley Rille",
-    "significance": "Apollo 15 Landing Site",
+    "significance": "Apollo 15",
+    "astronauts": "David Scott, Alfred Worden, James Irwin",
+    "date": new Date("1971-07-30"),
     "lat": 3.63386,
     "lon": 26.13222,
     "short_id": "hri",
-    "description": ""
+    "description": "Apollo 15 was the first extended stay on the moon and the first to use the Lunar Rover. The mission took over 12 days to complete."
   },
   {
     "name": "Descartes Highlands",
-    "significance": "Apollo 16 Landing Site",
+    "significance": "Apollo 16",
+    "astronauts": "John Young, Thomas Kenneth Mattingly, Charles Duke",
+    "date": new Date("1972-04-24"),
     "lat": 15.50019,
     "lon": -8.97301,
     "short_id": "des",
-    "description": ""
+    "description": "The penulimate moon landing arrived a site scientists suspected of being formed by volcanic activity (although this did not turn out to be the case). They collected over 95kg of Moon rocks for analysis."
   },
   {
     "name": "Taurus-Littrow",
-    "significance": "Apollo 17 Landing Site",
+    "significance": "Apollo 17",
+    "astronauts": "Eugene Cernan, Ronald Evans, Harrison Schmitt",
+    "date": new Date("1972-12-11"),
     "lat": 30.7717,
     "lon": 20.1908,
     "short_id": "tau",
-    "description": ""
+    "description": "Apollo 17 marks the last time humans were on the Moon. Scientists wanted to further investigate volcanic formations on the Moon's surface and the astronauts spent 3 days on the surface of the Moon."
   }
 ]
 
@@ -77,8 +73,84 @@ export const LandmarkMap = () => {
   const [mainMapLoaded, setMainMapLoaded] = useState(false);
 
   const [activeLandmarkID, setActiveLandmarkID] = useState(null);
+  const [activeLandmarkName, setActiveLandmarkName] = useState(null);
 
   const [selectedMapType, setSelectedMapType] = useState("globe");
+
+  const focusLandmark = (name) => {
+    setActiveLandmarkID(landmarks.findIndex(x => x.name === name));
+    setActiveLandmarkName(name);
+
+    if(globeRef && globeRef.current) {
+      globeRef.current.rotateToLandmark(name);
+    }
+  }
+
+  const displayTimeline = () => {
+    const sortedLandmarks = landmarks.sort((a, b) => a.date > b.date ? 1 : -1);
+
+    const firstDate = sortedLandmarks[0].date;
+    const lastDate = sortedLandmarks[sortedLandmarks.length - 1].date;
+    const maxDiffDays = (lastDate - firstDate) / (86400 * 1000);
+
+    return (
+      <div className="flex-col margin-b">
+        <div className="timeline-row">
+          <div className="timeline-row-inner">
+            {
+              sortedLandmarks.map((landmark, i) => {
+                if(i % 2 == 1) {
+                  return null;
+                }
+
+                const diffDays = (landmark.date - firstDate) / (86400 * 1000);
+                let percentage = (diffDays / maxDiffDays) * 80;
+
+                return (
+                  <div 
+                    className={`timeline-item-top ${landmark.name === activeLandmarkName ? "selected-item" : ""}`}
+                    style={{
+                      left: `${10 + percentage}%`
+                    }}
+                    onClick={() => focusLandmark(landmark.name)}
+                  >
+                    {landmark.significance} - {landmark.date.toLocaleString().split(",")[0]}
+                  </div>
+                )
+              })
+            }
+          </div>
+        </div>
+        <div className="timeline-separator"></div>
+        <div className="timeline-row">
+          <div className="timeline-row-inner">
+            {
+              sortedLandmarks.map((landmark, i) => {
+                if(i % 2 == 0) {
+                  return null;
+                }
+
+                const diffDays = (landmark.date - firstDate) / (86400 * 1000);
+                let percentage = (diffDays / maxDiffDays) * 80;
+
+                return (
+                  <div 
+                  className={`timeline-item-bottom ${landmark.name === activeLandmarkName ? "selected-item" : ""}`}
+                    style={{
+                      left: `${10 + percentage}%`
+                    }}
+                    onClick={() => focusLandmark(landmark.name)}
+                  >
+                    {landmark.significance} - {landmark.date.toLocaleString().split(",")[0]}
+                  </div>
+                )
+              })
+            }
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const calculateImagePosition = (lat, lon) => {
     const { width: boundingWidth, height: boundingHeight } = overlayRef.current.getBoundingClientRect();
@@ -101,9 +173,9 @@ export const LandmarkMap = () => {
         "bottom": bottom,
         "left": left
       }}>
-        <Landmark 
-          setActiveLandmark={() => {setActiveLandmarkID(id)}}
-          onClickRotate={globeRef.current ? () => globeRef.current.rotateToLandmark(name) : () => {}}
+        <Landmark
+          isActive={activeLandmarkName === name}
+          onClick={() => focusLandmark(name)}
         />
       </div>
     )
@@ -111,16 +183,22 @@ export const LandmarkMap = () => {
 
   const renderLandmarkInformation = () => {
     if(activeLandmarkID === null) {
-      return <div>Click a flag</div>
+      return (
+        <div className="flex-col information-box">
+          <h2>Select a Flag</h2>
+          <span className="information-box-normal">Click a flag on the map to find out more about the mission and where it landed!</span>
+        </div>
+      )
     }
 
-    const { name, significance, lat, lon, description } = landmarks[activeLandmarkID];
+    const { name, date, significance, lat, lon, description, astronauts } = landmarks[activeLandmarkID];
 
     return (
-      <div className="flex-col">
+      <div className="flex-col information-box">
         <h2>{name}</h2>
-        <span>{significance} (Latitude: {lat}°, Longitude: {lon}°)</span>
-        <span>{description}</span>
+        <span className="information-box-sig">{significance} landed here on {date.toLocaleString().split(",")[0]} (Latitude: {lat}°, Longitude: {lon}°)</span>
+        <span className="information-box-normal">{description}</span>
+        <span className="information-box-normal">The astronauts from NASA involved in this mission were: {astronauts}.</span>
       </div>
     )
   }
@@ -144,40 +222,49 @@ export const LandmarkMap = () => {
   }
 
   return (
-    <div className="flex-col width-100">
-      <div className="flex-row width-100">
-        <div className="width-35 outline-border flex-col">
-          <select
-            value={selectedMapType}
-            onChange={(e) => setSelectedMapType(e.target.value)}
-          >
-            <option value="globe">Globe</option>
-            <option value="3d" disabled={activeLandmarkID === null}>3D Close Up</option>
-            <option value="2d" disabled={activeLandmarkID === null}>2D Close Up</option>
-          </select>
-          { renderCloseUp() }
-        </div>
-        <div className="width-65 outline-border">
-          <div className="flex-col">
-            <div className="map-container" ref={overlayRef}>
-              <img 
-                src="./moon/colour/lroc_color_poles_2k.png"
-                alt="test"
-                onLoad={() => setMainMapLoaded(true)}
-              />
-              {
-                landmarks.map(({name, lat, lon}, id) => (
-                  renderLandmark(id, name, lat, lon)
-                ))
-              }
+    <>
+      <div className="height-100 information-box">
+        <h3>Timeline</h3>
+        <span className="information-box-normal">Click an event on the timeline below to find out more about the mission and where it landed!</span>
+        { displayTimeline() }
+      </div>
+      <div className="flex-col width-100">
+        <div className="flex-row width-100">
+          <div className="width-35 outline-border flex-col">
+            <div className="flex-row input-row">
+              <span className="input-name">Map Type:</span>
+              <select
+                value={selectedMapType}
+                onChange={(e) => setSelectedMapType(e.target.value)}
+              >
+                <option value="globe">Globe</option>
+                <option value="3d" disabled={activeLandmarkID === null}>3D Close Up</option>
+                <option value="2d" disabled={activeLandmarkID === null}>2D Close Up</option>
+              </select>
             </div>
-            { renderLandmarkInformation() }
+            <div className="flex-col flex-center height-100">
+              { renderCloseUp() }
+            </div>
+          </div>
+          <div className="width-65 outline-border">
+            <div className="flex-col">
+              <div className="map-container" ref={overlayRef}>
+                <img 
+                  src="./moon/colour/lroc_color_poles_2k.png"
+                  alt="test"
+                  onLoad={() => setMainMapLoaded(true)}
+                />
+                {
+                  landmarks.map(({name, lat, lon}, id) => (
+                    renderLandmark(id, name, lat, lon)
+                  ))
+                }
+              </div>
+              { renderLandmarkInformation() }
+            </div>
           </div>
         </div>
       </div>
-      <div>
-        <h2>Timeline</h2>
-      </div>
-    </div>
+    </>
   )
 }
