@@ -1,14 +1,23 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import * as THREE from "three";
 import { TIFFLoader } from 'three/examples/jsm/loaders/TIFFLoader';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
-export const Globe = (props) => {
+export const Globe = forwardRef((props, ref) => {
   const mount = useRef();
 
   const [threeLoaded, setThreeLoaded] = useState(false);
   const [renderer, setRenderer] = useState(null);
   const [camera, setCamera] = useState(null);
+  const [controls, setControls] = useState(null);
+
+  const [landmarkVectors, setLandmarkVectors] = useState({});
+
+  useImperativeHandle(ref, () => ({
+    rotateToLandmark(name) {
+      _rotateToLandmark(name)
+    }
+  }));
 
   const computeSphericalCoord = (lat, lon, radius, alt) => {
     const theta = Math.PI * (90 + lat) / 180;
@@ -45,12 +54,14 @@ export const Globe = (props) => {
 
     const radius = 17.374;
 
+    let newLVs = {};
+
     loader.load("/moon/colour/lroc_color_poles_8k.tif", (texture) => {
         loader.load("/moon/displacement/ldem_16_uint.tif", (displacementTexture) => {
             const material = new THREE.MeshStandardMaterial({
                 map: texture,
                 displacementMap: displacementTexture,
-                displacementScale: 1,
+                displacementScale: 3,
                 flatShading: true
                 
                 // bumpMap: displacementTexture,
@@ -63,22 +74,22 @@ export const Globe = (props) => {
                 material
             )
 
-            const pointGeom = new THREE.BoxGeometry(0.1, 0.5, 0.1);
+            const pointGeom = new THREE.BoxGeometry(0.1, 3, 0.1);
 
             props.landmarks.forEach(landmark => {
               const [x, y, z] = computeSphericalCoord(landmark.lat, landmark.lon, radius, 0.3);
-              const point = new THREE.Mesh(pointGeom, new THREE.MeshBasicMaterial({ color: 0x9900AA }));
+              const point = new THREE.Mesh(pointGeom, new THREE.MeshBasicMaterial({ color: 0x39f742 }));
               point.position.set(x, y, z);
               point.lookAt(new THREE.Vector3().copy(point.position).multiplyScalar(2));
               point.rotateX(Math.PI / 2);
               moon.add(point);
+
+              newLVs[landmark.name] = [x, y, z];
             });
         
             scene.add(moon);
         });
     });
-
-    
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -89,12 +100,14 @@ export const Globe = (props) => {
 
     const animate = () => {
       requestAnimationFrame(animate);
-      controls.update()
+      controls.update();
       renderer.render(scene, camera);
     };
 
     setRenderer(renderer);
     setCamera(camera);
+    setControls(controls);
+    setLandmarkVectors(newLVs);
     
     animate();
   }, [mount, threeLoaded]);
@@ -105,10 +118,29 @@ export const Globe = (props) => {
     }
   }, [])
 
+  const _rotateToLandmark = (name) => {
+    console.log("Rot")
+    console.log({camera})
+
+    const [x, y, z] = landmarkVectors[name];
+    camera.position.set(x, y, z).normalize().multiplyScalar(17 + 8)
+
+    // camera.position.set(10, 10, 10);
+    controls.update();
+  }
+
   return (
-    <div ref={mount} style={{
+    <div className="map-container" style={{
       width: "100%",
       height: "100%"
-    }}/>
+    }}>
+      <div ref={mount} style={{
+        width: "100%",
+        height: "100%"
+      }}/>
+      <div className='map-overlay'>
+      <button onClick={_rotateToLandmark}>Focus</button>
+      </div>
+    </div>
   )
-}
+});

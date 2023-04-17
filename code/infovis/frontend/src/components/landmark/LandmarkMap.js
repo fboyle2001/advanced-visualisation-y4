@@ -72,6 +72,7 @@ const landmarks = [
 
 export const LandmarkMap = () => {
   const overlayRef = useRef();
+  const globeRef = useRef();
 
   const [mainMapLoaded, setMainMapLoaded] = useState(false);
 
@@ -88,7 +89,7 @@ export const LandmarkMap = () => {
     return [lonRatio, latRatio];
   }
 
-  const renderLandmark = (id, lat, lon) => {
+  const renderLandmark = (id, name, lat, lon) => {
     if(!mainMapLoaded) {
       return;
     }
@@ -102,6 +103,7 @@ export const LandmarkMap = () => {
       }}>
         <Landmark 
           setActiveLandmark={() => {setActiveLandmarkID(id)}}
+          onClickRotate={globeRef.current ? () => globeRef.current.rotateToLandmark(name) : () => {}}
         />
       </div>
     )
@@ -127,8 +129,11 @@ export const LandmarkMap = () => {
     if(selectedMapType === "globe") {
       return <Globe 
         landmarks={landmarks}
+        ref={globeRef}
       />;
     }
+
+    globeRef.current = null;
 
     return (
       <img 
@@ -161,8 +166,8 @@ export const LandmarkMap = () => {
                 onLoad={() => setMainMapLoaded(true)}
               />
               {
-                landmarks.map(({lat, lon}, id) => (
-                  renderLandmark(id, lat, lon)
+                landmarks.map(({name, lat, lon}, id) => (
+                  renderLandmark(id, name, lat, lon)
                 ))
               }
             </div>
