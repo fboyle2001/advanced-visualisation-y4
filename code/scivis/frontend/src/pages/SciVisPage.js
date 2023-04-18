@@ -60,7 +60,7 @@ export const SciVisPage = () => {
   const [nextRegionMinY, setNextRegionMinY] = useState(-90);
   const [nextRegionMaxY, setNextRegionMaxY] = useState(90);
 
-  const [colourMap, setColourMap] = useState("geo");
+  const [colourMap, setColourMap] = useState("magma");
   const [zebraStripeCount, setZebraStripeCount] = useState(8);
 
   const [contoursEnabled, setContoursEnabled] = useState(false);
@@ -111,6 +111,10 @@ export const SciVisPage = () => {
 
     if(nextRegionMaxY?.length === 0 || Number(nextRegionMaxY) > 90) {
       return [false, "Longitude must be <= 90"];
+    }
+
+    if(!Number.isInteger(Number(nextRegionMinX)) || !Number.isInteger(Number(nextRegionMaxX)) || !Number.isInteger(Number(nextRegionMinY)) || !Number.isInteger(Number(nextRegionMaxY))) {
+      return [false, "Latitude and Longitude must be integers"];
     }
 
     if(Number(nextRegionMinX) >= Number(nextRegionMaxX)) {

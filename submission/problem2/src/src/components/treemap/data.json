@@ -1,0 +1,94 @@
+[
+    {
+        "name": "Exploration",
+        "children": [
+            {
+                "name": "Development",
+                "children": [
+                    {
+                        "name": "Orion Program",
+                        "value": 1320.3
+                    },
+                    {
+                        "name": "Space Launch System",
+                        "value": 2600.0
+                    },
+                    {
+                        "name": "Exploration Ground Systems",
+                        "value": 799.2
+                    }
+                ]
+            },
+            {
+                "name": "Artermis Campaign",
+                "children": [
+                    {
+                        "name": "Human Landing System",
+                        "value": 1485.6
+                    },
+                    {
+                        "name": "Program",
+                        "value": 1114.7
+                    }
+                ]
+            },
+            {
+                "name": "Other",
+                "value": 130.7
+            }
+        ]
+    },
+    {
+        "name": "Space Operations",
+        "value": 4250
+    },
+    {
+        "name": "Space Technology",
+        "value": 1200
+    },
+    {
+        "name": "Aeronautics",
+        "value": 935
+    },
+    {
+        "name": "STEM Engagement",
+        "value": 143.5
+    },
+    {
+        "name": "Mission Services",
+        "value": 3129.5
+    },
+    {
+        "name": "Compliance",
+        "value": 414.3
+    },
+    {
+        "name": "Inspector General",
+        "value": 47.6
+    },
+    {
+        "name": "Science",
+        "children": [
+            {
+                "name": "Earth Science",
+                "value": 2195
+            },
+            {
+                "name": "Planetary Science",
+                "value": 3200
+            },
+            {
+                "name": "Astrophysics",
+                "value": 1510
+            },
+            {
+                "name": "Heliophysics",
+                "value": 805
+            },
+            {
+                "name": "Biological and Physical Sciences",
+                "value": 85
+            }
+        ]
+    }
+]
