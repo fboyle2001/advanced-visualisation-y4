@@ -90,9 +90,11 @@ export const TwoDimensionalImagePanel = (props) => {
     const bottomR = calculateRegionYCoord(boundingHeight - bottom);
     const rightR = calculateRegionXCoord(boundingWidth - right);
 
+    console.log("change")
+
     setOverlayCoords([top, left, bottom, right]);
     updateSelectedRegion(leftR, rightR, bottomR, topR);
-  }, [cornerOne, cornerTwo, regionMinX, regionMaxX, regionMinY, regionMaxY, updateSelectedRegion]);
+  }, [cornerOne, cornerTwo, regionMinX, regionMaxX, regionMinY, regionMaxY]);
 
   const renderSelectedRegionOverlay = () => {
     const [top, left, bottom, right] = overlayCoords;

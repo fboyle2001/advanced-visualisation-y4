@@ -443,6 +443,7 @@ export const SciVisPage = () => {
                     regionMinY={regionMinY}
                     regionMaxY={regionMaxY}
                     updateSelectedRegion={(minX, maxX, minY, maxY) => {
+                      console.log("updated")
                       setNextRegionMinX(minX);
                       setNextRegionMaxX(maxX);
                       setNextRegionMinY(minY);

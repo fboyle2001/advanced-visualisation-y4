@@ -105,6 +105,8 @@ img {
 .selected-item {
     border: 0.2rem solid green !important;
     font-weight: bold !important;
+    background-color: green !important;
+    color: white !important;
 }
 
 /* https://stackoverflow.com/questions/60344739/div-with-arrow-up-on-top-of-div-and-box-positioning */
